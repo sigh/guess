@@ -3,79 +3,77 @@ Byte size converter for data storage units.
 """
 
 import re
-from typing import Dict, Any
-from guess.converters.base import Converter
+from typing import Dict, Any, List
+from guess.converters.base import Converter, Interpretation
 
 
 class ByteSizeConverter(Converter):
     """Converts byte sizes between different units."""
 
-    def can_convert(self, input_str: str) -> bool:
-        """Check if input looks like a byte size."""
+    def get_interpretations(self, input_str: str) -> List[Interpretation]:
+        """Get all possible interpretations of the input as a byte size."""
         cleaned = input_str.strip().lower()
+        interpretations = []
 
-        # Check for pure numbers (assume bytes if large enough)
+        # Check for pure numbers (assume bytes)
         if cleaned.isdigit():
             size = int(cleaned)
-            # Consider it bytes if it's >= 1024 (1 KB)
-            return size >= 1024
+            if size >= 1024:  # Only consider reasonable byte sizes
+                interpretations.append(Interpretation(description="bytes", value=size))
 
-        # Check for unit-based input (1GB, 512MB, 2.5GiB, etc.)
-        pattern = r"^\d+(?:\.\d+)?\s*([kmgt]?i?b)$"
-        return bool(re.match(pattern, cleaned))
+        # Check for unit-based input
+        elif re.match(r"^\d+(?:\.\d+)?\s*([kmgt]?i?b)$", cleaned):
+            try:
+                value = self._parse_byte_units(cleaned)
+                if value is not None:
+                    interpretations.append(
+                        Interpretation(description="byte size", value=value)
+                    )
+            except ValueError:
+                pass
 
-    def convert(self, input_str: str) -> Dict[str, Any]:
-        """Convert byte size to various units."""
-        try:
-            cleaned = input_str.strip().lower()
+        return interpretations
 
-            if cleaned.isdigit():
-                total_bytes = int(cleaned)
-            else:
-                # Parse unit-based input
-                total_bytes = self._parse_byte_units(cleaned)
-                if total_bytes is None:
-                    return {}
+    def convert_value(self, value: Any) -> Dict[str, Any]:
+        """Convert a byte size value to various formats."""
+        total_bytes = value
 
-            # Decimal (1000-based) units
-            decimal_units = []
-            if total_bytes >= 1000**4:
-                decimal_units.append(f"{total_bytes / 1000**4:.2f} TB")
-            if total_bytes >= 1000**3:
-                decimal_units.append(f"{total_bytes / 1000**3:.2f} GB")
-            if total_bytes >= 1000**2:
-                decimal_units.append(f"{total_bytes / 1000**2:.2f} MB")
-            if total_bytes >= 1000:
-                decimal_units.append(f"{total_bytes / 1000:.2f} KB")
+        # Decimal (1000-based) units
+        decimal_units = []
+        if total_bytes >= 1000**4:
+            decimal_units.append(f"{total_bytes / 1000**4:.2f} TB")
+        if total_bytes >= 1000**3:
+            decimal_units.append(f"{total_bytes / 1000**3:.2f} GB")
+        if total_bytes >= 1000**2:
+            decimal_units.append(f"{total_bytes / 1000**2:.2f} MB")
+        if total_bytes >= 1000:
+            decimal_units.append(f"{total_bytes / 1000:.2f} KB")
 
-            # Binary (1024-based) units
-            binary_units = []
-            if total_bytes >= 1024**4:
-                binary_units.append(f"{total_bytes / 1024**4:.2f} TiB")
-            if total_bytes >= 1024**3:
-                binary_units.append(f"{total_bytes / 1024**3:.2f} GiB")
-            if total_bytes >= 1024**2:
-                binary_units.append(f"{total_bytes / 1024**2:.2f} MiB")
-            if total_bytes >= 1024:
-                binary_units.append(f"{total_bytes / 1024:.2f} KiB")
+        # Binary (1024-based) units
+        binary_units = []
+        if total_bytes >= 1024**4:
+            binary_units.append(f"{total_bytes / 1024**4:.2f} TiB")
+        if total_bytes >= 1024**3:
+            binary_units.append(f"{total_bytes / 1024**3:.2f} GiB")
+        if total_bytes >= 1024**2:
+            binary_units.append(f"{total_bytes / 1024**2:.2f} MiB")
+        if total_bytes >= 1024:
+            binary_units.append(f"{total_bytes / 1024:.2f} KiB")
 
-            result = {}
+        result = {}
 
-            # Add raw byte count
-            result["Raw Bytes"] = f"{total_bytes:,}"
+        # Add raw byte count
+        result["Raw Bytes"] = f"{total_bytes} bytes"
 
-            # Add decimal units if available
-            if decimal_units:
-                result["Decimal"] = decimal_units[0]
+        # Add decimal units if available
+        if decimal_units:
+            result["Decimal"] = decimal_units[0]
 
-            # Add binary units if available
-            if binary_units:
-                result["Binary"] = binary_units[0]
+        # Add binary units if available
+        if binary_units:
+            result["Binary"] = binary_units[0]
 
-            return result
-
-        except (ValueError, TypeError):
-            return {}
+        return result
 
     def _parse_byte_units(self, input_str: str) -> int:
         """Parse byte size string with units like '1GB', '2.5GiB', etc."""
@@ -121,4 +119,13 @@ class ByteSizeConverter(Converter):
 
     def get_name(self) -> str:
         """Get the name of this converter."""
-        return "Byte Size"
+        return "Size"
+
+    def choose_display_value(
+        self, formats: Dict[str, Any], interpretation_description: str
+    ) -> str:
+        """Choose the most readable display value for byte size formats."""
+        # Show both decimal and binary for byte sizes
+        if "Decimal" in formats and "Binary" in formats:
+            return f"{formats['Decimal']} / {formats['Binary']}"
+        return formats.get("Decimal")

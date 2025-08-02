@@ -47,20 +47,12 @@ class TableFormatter:
     def _format_single_result(self, result: Dict[str, Any]) -> str:
         """Format single converter result with multiple formats."""
         converter_name = result["converter_name"]
+        interpretation_description = result.get("interpretation_description", "input")
         formats = result["formats"]
 
         lines = []
-        # Create context-aware labels
-        if converter_name == "Number Base":
-            lines.append("Number (from input):")
-        elif converter_name == "Timestamp":
-            lines.append("Timestamp (from input):")
-        elif converter_name == "Duration":
-            lines.append("Duration (from input):")
-        elif converter_name == "Byte Size":
-            lines.append("Bytes (from input):")
-        else:
-            lines.append(f"{converter_name} (from input):")
+        # Use the specific interpretation description for accurate labeling
+        lines.append(f"{converter_name} (from {interpretation_description}):")
 
         for key, value in formats.items():
             lines.append(f"  {value}")
@@ -75,24 +67,26 @@ class TableFormatter:
 
         for result in results_list:
             converter_name = result["converter_name"]
+            interpretation_description = result.get(
+                "interpretation_description", "input"
+            )
             formats = result["formats"]
+            converter = result.get("converter")
 
             # Get the most representative value for this interpretation
-            display_value = self._get_primary_display_value(formats)
-
-            # Create more descriptive labels based on requirements
-            if converter_name == "Number Base":
-                lines.append("Number (from decimal):")
-            elif converter_name == "Timestamp":
-                # Determine if it's seconds or milliseconds based on the input
-                lines.append("Timestamp (from unix timestamp):")
-            elif converter_name == "Duration":
-                lines.append("Duration (from seconds):")
-            elif converter_name == "Byte Size":
-                lines.append("Bytes (from byte count):")
+            if converter:
+                display_value = converter.choose_display_value(
+                    formats, interpretation_description
+                )
+                # If converter returns None, use the first available value
+                if display_value is None and formats:
+                    display_value = next(iter(formats.values()))
             else:
-                lines.append(f"{converter_name}:")
+                # Fallback to internal method for backward compatibility
+                display_value = self._get_primary_display_value(formats)
 
+            # Use the specific interpretation description for accurate labeling
+            lines.append(f"{converter_name} (from {interpretation_description}):")
             lines.append(f"  {display_value}")
             lines.append("")  # Empty line between interpretations
 
@@ -103,7 +97,11 @@ class TableFormatter:
         return "\n".join(lines)
 
     def _get_primary_display_value(self, formats: Dict[str, Any]) -> str:
-        """Get the most representative single value to display for a converter."""
+        """Get the most representative single value to display for a converter.
+
+        DEPRECATED: This method is kept for backward compatibility only.
+        Use converter.choose_display_value() instead.
+        """
         # Priority order for different converter types - choose most readable format
 
         # For byte size converter, show both decimal and binary

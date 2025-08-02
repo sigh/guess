@@ -3,92 +3,69 @@ Duration converter for time periods and human-readable durations.
 """
 
 import re
-from typing import Dict, Any
-from guess.converters.base import Converter
+from typing import Dict, Any, List
+from guess.converters.base import Converter, Interpretation
 
 
 class DurationConverter(Converter):
     """Converts durations between different formats."""
 
-    def can_convert(self, input_str: str) -> bool:
-        """Check if input looks like a duration."""
+    def get_interpretations(self, input_str: str) -> List[Interpretation]:
+        """Get all possible interpretations of the input as a duration."""
         cleaned = input_str.strip().lower()
+        interpretations = []
 
-        # Check for pure numbers (assume seconds if small enough)
+        # Check for pure numbers (assume seconds)
         if cleaned.isdigit():
             seconds = int(cleaned)
-            # Consider it a duration if it's less than 1 week (604800 seconds)
-            return 0 <= seconds < 604800
+            if 0 <= seconds < 604800:  # Less than 1 week
+                interpretations.append(
+                    Interpretation(description="seconds", value=float(seconds))
+                )
 
-        # Check for unit-based input (1h, 30m, 2d, 1h30m, etc.)
-        # Pattern matches combinations like: 1d2h30m45s, 1h30m, 2d, 30s
-        pattern = r"^(\d+[wdhms])+$"
-        return bool(re.match(pattern, cleaned))
+        # Check for duration with units
+        elif re.match(r"^(\d+[wdhms])+$", cleaned):
+            try:
+                value = self._parse_duration_units(cleaned)
+                if value is not None:
+                    interpretations.append(
+                        Interpretation(description="string", value=float(value))
+                    )
+            except ValueError:
+                pass
 
-    def convert(self, input_str: str) -> Dict[str, Any]:
-        """Convert duration to various formats."""
-        try:
-            cleaned = input_str.strip().lower()
+        return interpretations
 
-            if cleaned.isdigit():
-                total_seconds = int(cleaned)
-            else:
-                # Parse unit-based input
-                total_seconds = self._parse_duration_units(cleaned)
-                if total_seconds is None:
-                    return {}
+    def convert_value(self, value: Any) -> Dict[str, Any]:
+        """Convert a duration value to various formats."""
+        total_seconds = int(value)
 
-            # Calculate time components
-            weeks = total_seconds // 604800
-            days = (total_seconds % 604800) // 86400
-            hours = (total_seconds % 86400) // 3600
-            minutes = (total_seconds % 3600) // 60
-            seconds = total_seconds % 60
+        # Human readable format
+        human_readable = self._format_human_readable_duration(total_seconds)
 
-            # Human readable format
-            human_parts = []
-            if weeks > 0:
-                human_parts.append(f"{weeks} week{'s' if weeks != 1 else ''}")
-            if days > 0:
-                human_parts.append(f"{days} day{'s' if days != 1 else ''}")
-            if hours > 0:
-                human_parts.append(f"{hours} hour{'s' if hours != 1 else ''}")
-            if minutes > 0:
-                human_parts.append(f"{minutes} minute{'s' if minutes != 1 else ''}")
-            if seconds > 0:
-                human_parts.append(f"{seconds} second{'s' if seconds != 1 else ''}")
+        # Compact format
+        compact = self._format_compact_duration(total_seconds)
 
-            human_readable = ", ".join(human_parts) if human_parts else "0 seconds"
+        result = {
+            "Human Readable": human_readable,
+            "Compact": compact,
+            "Seconds": str(total_seconds),
+            "Minutes": f"{total_seconds / 60:.2f}",
+            "Hours": f"{total_seconds / 3600:.2f}",
+        }
 
-            # Compact format
-            compact_parts = []
-            if weeks > 0:
-                compact_parts.append(f"{weeks}w")
-            if days > 0:
-                compact_parts.append(f"{days}d")
-            if hours > 0:
-                compact_parts.append(f"{hours}h")
-            if minutes > 0:
-                compact_parts.append(f"{minutes}m")
-            if seconds > 0:
-                compact_parts.append(f"{seconds}s")
-
-            compact = "".join(compact_parts) if compact_parts else "0s"
-
-            result = {
-                "Human Readable": human_readable,
-                "Compact": compact,
-                "Seconds": f"{total_seconds:,}",
-            }
-
-            return result
-
-        except (ValueError, TypeError):
-            return {}
+        return result
 
     def get_name(self) -> str:
         """Get the name of this converter."""
         return "Duration"
+
+    def choose_display_value(
+        self, formats: Dict[str, Any], interpretation_description: str
+    ) -> str:
+        """Choose the most readable display value for duration formats."""
+        # Prioritize human readable format
+        return formats.get("Human Readable")
 
     def _parse_duration_units(self, input_str: str) -> int:
         """Parse duration string with units like '1h30m', '2d4h', etc."""
@@ -118,3 +95,47 @@ class DurationConverter(Converter):
                 return None
 
         return total_seconds
+
+    def _format_human_readable_duration(self, total_seconds: int) -> str:
+        """Format duration as human readable string."""
+        weeks = total_seconds // 604800
+        days = (total_seconds % 604800) // 86400
+        hours = (total_seconds % 86400) // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+
+        human_parts = []
+        if weeks > 0:
+            human_parts.append(f"{weeks} week{'s' if weeks != 1 else ''}")
+        if days > 0:
+            human_parts.append(f"{days} day{'s' if days != 1 else ''}")
+        if hours > 0:
+            human_parts.append(f"{hours} hour{'s' if hours != 1 else ''}")
+        if minutes > 0:
+            human_parts.append(f"{minutes} minute{'s' if minutes != 1 else ''}")
+        if seconds > 0:
+            human_parts.append(f"{seconds} second{'s' if seconds != 1 else ''}")
+
+        return ", ".join(human_parts) if human_parts else "0 seconds"
+
+    def _format_compact_duration(self, total_seconds: int) -> str:
+        """Format duration as compact string."""
+        weeks = total_seconds // 604800
+        days = (total_seconds % 604800) // 86400
+        hours = (total_seconds % 86400) // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+
+        compact_parts = []
+        if weeks > 0:
+            compact_parts.append(f"{weeks}w")
+        if days > 0:
+            compact_parts.append(f"{days}d")
+        if hours > 0:
+            compact_parts.append(f"{hours}h")
+        if minutes > 0:
+            compact_parts.append(f"{minutes}m")
+        if seconds > 0:
+            compact_parts.append(f"{seconds}s")
+
+        return "".join(compact_parts) if compact_parts else "0s"

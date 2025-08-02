@@ -2,7 +2,6 @@
 Tests for the new hierarchical output formatting (without table formatting).
 """
 
-import pytest
 from guess.formatter import TableFormatter
 
 
@@ -26,7 +25,7 @@ class TestOutputFormatting:
         output = formatter.format_multiple_results([result])
 
         # Should show hierarchical format without table characters
-        assert "Number (from input):" in output
+        assert "Number Base (from input):" in output
         assert "  255" in output
         assert "  0xff" in output
         assert "  0b11111111" in output
@@ -70,9 +69,9 @@ class TestOutputFormatting:
         output = formatter.format_multiple_results(results)
 
         # Should show one format per interpretation type
-        assert "Number (from decimal):" in output
-        assert "Timestamp (from unix timestamp):" in output
-        assert "Bytes (from byte count):" in output
+        assert "Number Base (from input):" in output
+        assert "Timestamp (from input):" in output
+        assert "Byte Size (from input):" in output
 
         # Should show primary values (most readable)
         assert "1,722,628,800,000" in output  # Number primary
@@ -151,10 +150,10 @@ class TestOutputFormatting:
 
         # Test different converter types get correct labels
         test_cases = [
-            ("Number Base", "Number (from input):"),
+            ("Number Base", "Number Base (from input):"),
             ("Timestamp", "Timestamp (from input):"),
             ("Duration", "Duration (from input):"),
-            ("Byte Size", "Bytes (from input):"),
+            ("Byte Size", "Byte Size (from input):"),
         ]
 
         for converter_name, expected_label in test_cases:
@@ -169,4 +168,4 @@ class TestOutputFormatting:
         results = [{"converter_name": "Number Base", "formats": {"Decimal": "255"}}]
 
         output = formatter._format_multiple_interpretations(results)
-        assert "Number (from decimal):" in output
+        assert "Number Base (from input):" in output

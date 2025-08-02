@@ -85,13 +85,25 @@ def main():
 
         # Handle explicit converter type
         converter = registry.get_converter_by_name(args.converter_type)
-        if converter and converter.can_convert(args.value):
-            formats = converter.convert(args.value)
-            if formats:
+        if converter:
+            interpretations = converter.get_interpretations(args.value)
+            if interpretations:
                 formatter = TableFormatter()
-                result = [{"converter_name": converter.get_name(), "formats": formats}]
-                print(formatter.format_multiple_results(result))
-                return
+                # Convert interpretations to the format expected by formatter
+                results = []
+                for interpretation in interpretations:
+                    formats = converter.convert_value(interpretation.value)
+                    if formats:
+                        results.append(
+                            {
+                                "converter_name": converter.get_name(),
+                                "interpretation_description": interpretation.description,
+                                "formats": formats,
+                            }
+                        )
+                if results:
+                    print(formatter.format_multiple_results(results))
+                    return
 
         print(f"Unable to convert '{args.value}' as {args.converter_type}")
         sys.exit(1)

@@ -40,7 +40,7 @@ def try_convert(input_str: str) -> List[Dict[str, Any]]:
     """
     Try to convert input using all applicable converters.
 
-    Iterates through all available converters and collects results from
+    Iterates through all available converters and collects interpretations from
     those that can handle the input. This enables the multi-interpretation
     feature where ambiguous input shows multiple possible meanings.
 
@@ -49,17 +49,19 @@ def try_convert(input_str: str) -> List[Dict[str, Any]]:
 
     Returns:
         A list of results from converters that can handle the input.
-        Each result is a dict with 'converter_name' and 'formats' keys.
+        Each result is a dict with 'converter_name', 'interpretation_description', and 'formats' keys.
         Returns empty list if no converters can handle the input.
 
     Example:
         [
             {
                 'converter_name': 'Number Base',
+                'interpretation_description': 'decimal integer',
                 'formats': {'Decimal': '255', 'Hexadecimal': '0xff', ...}
             },
             {
                 'converter_name': 'Duration',
+                'interpretation_description': 'duration in seconds',
                 'formats': {'Seconds': '255', 'Minutes': '4.25', ...}
             }
         ]
@@ -68,11 +70,17 @@ def try_convert(input_str: str) -> List[Dict[str, Any]]:
     converters = get_all_converters()
 
     for converter in converters:
-        if converter.can_convert(input_str):
-            formats = converter.convert(input_str)
+        interpretations = converter.get_interpretations(input_str)
+        for interpretation in interpretations:
+            formats = converter.convert_value(interpretation.value)
             if formats:  # Only add if conversion was successful
                 results.append(
-                    {"converter_name": converter.get_name(), "formats": formats}
+                    {
+                        "converter_name": converter.get_name(),
+                        "interpretation_description": interpretation.description,
+                        "formats": formats,
+                        "converter": converter,  # Include converter instance
+                    }
                 )
 
     return results
@@ -104,11 +112,11 @@ def get_converter_by_name(name: str) -> Optional[Converter]:
         "time": "Timestamp",
         "timestamp": "Timestamp",
         "duration": "Duration",
-        "size": "Byte Size",
-        "bytesize": "Byte Size",
-        "bytes": "Byte Size",
-        "number": "Number Base",
-        "num": "Number Base",
+        "size": "Size",
+        "bytesize": "Size",
+        "bytes": "Size",
+        "number": "Number",
+        "num": "Number",
         "color": "Color",
         "permission": "Permission",
     }

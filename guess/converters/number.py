@@ -3,99 +3,142 @@ Number base converter for decimal, hex, binary, and octal formats.
 """
 
 import re
-from typing import Dict, Any
-from guess.converters.base import Converter
+from typing import Dict, Any, List
+from guess.converters.base import Converter, Interpretation
 
 
 class NumberConverter(Converter):
     """Converts numbers between different bases."""
 
-    def can_convert(self, input_str: str) -> bool:
-        """Check if input is a valid number in any supported format."""
+    def get_interpretations(self, input_str: str) -> List[Interpretation]:
+        """Get all possible interpretations of the input as a number."""
         cleaned = input_str.strip().lower()
+        interpretations = []
 
-        # Check in order of specificity to avoid conflicts
+        # Try different number format interpretations in order of specificity
 
-        # Binary (check before hex to avoid conflicts)
-        if re.match(r"^-?0b[01]+$", cleaned):
-            return True
-        if re.match(r"^-?[01]+b$", cleaned):
-            return True
+        # Scientific notation
+        if "e" in cleaned and re.match(r"^-?\d+(?:\.\d+)?e[+-]?\d+$", cleaned):
+            try:
+                value = float(cleaned)
+                interpretations.append(
+                    Interpretation(description="scientific", value=value)
+                )
+            except ValueError:
+                pass
 
-        # Octal (check before hex to avoid conflicts)
-        if re.match(r"^-?0o[0-7]+$", cleaned):
-            return True
-        if re.match(r"^-?[0-7]+o$", cleaned):
-            return True
-
-        # Hexadecimal
-        if re.match(r"^-?0x[0-9a-f]+$", cleaned):
-            return True
-        if re.match(r"^-?#[0-9a-f]+$", cleaned):
-            return True
-        # Only accept plain hex if it contains a-f characters and doesn't end
-        # with b or o
-        if (
+        # Hexadecimal patterns
+        if cleaned.startswith("0x") and re.match(r"^-?0x[0-9a-f]+$", cleaned):
+            try:
+                value = int(cleaned, 16)
+                interpretations.append(Interpretation(description="hex", value=value))
+            except ValueError:
+                pass
+        elif cleaned.startswith("#") and re.match(r"^-?#[0-9a-f]+$", cleaned):
+            try:
+                value = int(cleaned[1:], 16)
+                interpretations.append(Interpretation(description="hex", value=value))
+            except ValueError:
+                pass
+        elif (
             re.match(r"^-?[0-9a-f]+$", cleaned)
             and any(c in cleaned for c in "abcdef")
             and not cleaned.endswith("b")
             and not cleaned.endswith("o")
             and not cleaned.startswith("0b")
-            and not cleaned.startswith("-0b")
+            and not cleaned.startswith("0o")
         ):
-            return True
+            try:
+                value = int(cleaned, 16)
+                interpretations.append(Interpretation(description="hex", value=value))
+            except ValueError:
+                pass
 
-        # Decimal numbers (including negative and scientific notation)
-        if re.match(r"^-?\d+$", cleaned):
-            return True
+        # Binary patterns
+        if cleaned.startswith("0b") and re.match(r"^-?0b[01]+$", cleaned):
+            try:
+                value = int(cleaned, 2)
+                interpretations.append(
+                    Interpretation(description="binary", value=value)
+                )
+            except ValueError:
+                pass
+        elif cleaned.endswith("b") and re.match(r"^-?[01]+b$", cleaned):
+            try:
+                value = int(cleaned[:-1], 2)
+                interpretations.append(
+                    Interpretation(description="binary", value=value)
+                )
+            except ValueError:
+                pass
+
+        # Octal patterns
+        if cleaned.startswith("0o") and re.match(r"^-?0o[0-7]+$", cleaned):
+            try:
+                value = int(cleaned, 8)
+                interpretations.append(Interpretation(description="octal", value=value))
+            except ValueError:
+                pass
+        elif cleaned.endswith("o") and re.match(r"^-?[0-7]+o$", cleaned):
+            try:
+                value = int(cleaned[:-1], 8)
+                interpretations.append(Interpretation(description="octal", value=value))
+            except ValueError:
+                pass
+
+        # Decimal patterns
         if re.match(r"^-?\d+\.\d+$", cleaned):
-            return True
-        if re.match(r"^-?\d+(?:\.\d+)?e[+-]?\d+$", cleaned):
-            return True
-        if re.match(r"^-?[0-7]+o$", cleaned):
-            return True
+            try:
+                value = float(cleaned)
+                interpretations.append(
+                    Interpretation(description="decimal", value=value)
+                )
+            except ValueError:
+                pass
+        elif re.match(r"^-?\d+$", cleaned):
+            try:
+                value = int(cleaned)
+                interpretations.append(
+                    Interpretation(description="decimal", value=value)
+                )
+            except ValueError:
+                pass
 
-        return False
+        return interpretations
 
-    def convert(self, input_str: str) -> Dict[str, Any]:
-        """Convert number to different bases and formats."""
-        try:
-            cleaned = input_str.strip().lower()
-            num = self._parse_number(cleaned)
+    def convert_value(self, value: Any) -> Dict[str, Any]:
+        """Convert a number value to various formats."""
+        result = {}
 
-            if num is None:
-                return {}
-
-            result = {}
-
-            # Basic number formats
-            if num >= 1_000_000:
-                result["Decimal"] = f"{num:,}"
-                result["Scientific"] = f"{num:.2e}"
-                # Add human readable format for large numbers
-                human_readable = self._format_human_readable(num)
+        # Basic number formats
+        if value >= 1_000_000:
+            result["Decimal"] = str(value)
+            result["Scientific"] = f"{value:.2e}"
+            # Add human readable format for large numbers
+            human_readable = self._format_human_readable(value)
+            if human_readable:
+                result["Human Readable"] = human_readable
+        else:
+            result["Decimal"] = str(value)
+            # Add human readable for smaller numbers too if applicable
+            if isinstance(value, int) and value >= 100_000:
+                human_readable = self._format_human_readable(value)
                 if human_readable:
                     result["Human Readable"] = human_readable
-            else:
-                result["Decimal"] = str(num)
-                # Add human readable for smaller numbers too if applicable
-                if isinstance(num, int) and num >= 100_000:
-                    human_readable = self._format_human_readable(num)
-                    if human_readable:
-                        result["Human Readable"] = human_readable
 
-            # Only show other bases for integers
-            if isinstance(num, int):
-                result["Hexadecimal"] = (
-                    f"0x{abs(num):x}" if num >= 0 else f"-0x{abs(num):x}"
-                )
-                result["Binary"] = f"0b{abs(num):b}" if num >= 0 else f"-0b{abs(num):b}"
-                result["Octal"] = f"0o{abs(num):o}" if num >= 0 else f"-0o{abs(num):o}"
+        # Only show other bases for integers
+        if isinstance(value, int):
+            result["Hexadecimal"] = (
+                f"0x{abs(value):x}" if value >= 0 else f"-0x{abs(value):x}"
+            )
+            result["Binary"] = (
+                f"0b{abs(value):b}" if value >= 0 else f"-0b{abs(value):b}"
+            )
+            result["Octal"] = (
+                f"0o{abs(value):o}" if value >= 0 else f"-0o{abs(value):o}"
+            )
 
-            return result
-
-        except (ValueError, TypeError):
-            return {}
+        return result
 
     def _parse_number(self, input_str: str):
         """Parse number from various formats."""
@@ -171,4 +214,11 @@ class NumberConverter(Converter):
 
     def get_name(self) -> str:
         """Get the name of this converter."""
-        return "Number Base"
+        return "Number"
+
+    def choose_display_value(
+        self, formats: Dict[str, Any], interpretation_description: str
+    ) -> str:
+        """Choose the most readable display value for number formats."""
+        # Prefer human readable for large numbers
+        return formats.get("Human Readable")

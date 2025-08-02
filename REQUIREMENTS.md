@@ -309,7 +309,7 @@ Duration (from seconds):
 #### Byte size with units: `guess 2.5GB`
 
 ```text
-Bytes (from unit):
+Bytes (from GB):
   2.5 GB
   2.33 GiB
   2500000000 bytes
@@ -330,8 +330,8 @@ Number (from hex):
 #### Color value: `guess color 255`
 
 ```text
-Color (from rgb value):
-  #FF0000 (red)
+Color (from rgb):
+  #FF0000
   rgb(255, 0, 0)
   hsl(0, 100%, 50%)
   red

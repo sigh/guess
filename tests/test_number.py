@@ -2,7 +2,6 @@
 Tests for the number converter.
 """
 
-import pytest
 from guess.converters.number import NumberConverter
 
 
@@ -13,84 +12,121 @@ class TestNumberConverter:
         """Set up test fixtures."""
         self.converter = NumberConverter()
 
-    def test_can_convert_valid_numbers(self):
-        """Test that valid numbers are recognized."""
-        # Decimal numbers
-        assert self.converter.can_convert("255")
-        assert self.converter.can_convert("0")
-        assert self.converter.can_convert("1234567890")
-        assert self.converter.can_convert("  123  ")  # with whitespace
+    # Test get_interpretations method
+    def test_get_interpretations_decimal_numbers(self):
+        """Test that decimal numbers are properly interpreted."""
+        # Basic decimal number
+        interpretations = self.converter.get_interpretations("255")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "decimal"
+        assert interpretations[0].value == 255
 
-        # Hexadecimal numbers
-        assert self.converter.can_convert("0xFF")
-        assert self.converter.can_convert("abc")  # hex without prefix
-        assert self.converter.can_convert("#FF")
+        # Zero
+        interpretations = self.converter.get_interpretations("0")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "decimal"
+        assert interpretations[0].value == 0
 
-        # Binary numbers
-        assert self.converter.can_convert("0b101010")
-        assert self.converter.can_convert("101010b")
+        # Large number
+        interpretations = self.converter.get_interpretations("1234567890")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "decimal"
+        assert interpretations[0].value == 1234567890
 
-        # Octal numbers
-        assert self.converter.can_convert("0o777")
-        assert self.converter.can_convert("777o")
+        # With whitespace
+        interpretations = self.converter.get_interpretations("  123  ")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "decimal"
+        assert interpretations[0].value == 123
 
-        # Negative numbers
-        assert self.converter.can_convert("-123")
+    def test_get_interpretations_hexadecimal_numbers(self):
+        """Test that hexadecimal numbers are properly interpreted."""
+        # 0x prefix
+        interpretations = self.converter.get_interpretations("0xFF")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "hex"
+        assert interpretations[0].value == 255
 
-        # Scientific notation
-        assert self.converter.can_convert("1.5e9")
+        # # prefix
+        interpretations = self.converter.get_interpretations("#FF")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "hex"
+        assert interpretations[0].value == 255
 
-    def test_can_convert_invalid_inputs(self):
-        """Test that invalid inputs are rejected."""
-        assert not self.converter.can_convert("")
-        assert not self.converter.can_convert("xyz")  # invalid hex
-        assert not self.converter.can_convert("12g34")  # invalid mixed format
-        assert not self.converter.can_convert("0b12345")  # invalid binary
+        # Plain hex (no prefix)
+        interpretations = self.converter.get_interpretations("abc")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "hex"
+        assert interpretations[0].value == 2748  # 0xabc
 
-    def test_convert_basic_numbers(self):
-        """Test basic number conversion."""
-        result = self.converter.convert("255")
-        expected_keys = {
-            "Decimal",
-            "Hexadecimal",
-            "Binary",
-            "Octal",
-        }
+    def test_get_interpretations_binary_numbers(self):
+        """Test that binary numbers are properly interpreted."""
+        # 0b prefix
+        interpretations = self.converter.get_interpretations("0b101010")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "binary"
+        assert interpretations[0].value == 42
+
+        # b suffix
+        interpretations = self.converter.get_interpretations("101010b")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "binary"
+        assert interpretations[0].value == 42
+
+    def test_get_interpretations_octal_numbers(self):
+        """Test that octal numbers are properly interpreted."""
+        # 0o prefix
+        interpretations = self.converter.get_interpretations("0o777")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "octal"
+        assert interpretations[0].value == 511
+
+        # o suffix
+        interpretations = self.converter.get_interpretations("777o")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "octal"
+        assert interpretations[0].value == 511
+
+    def test_get_interpretations_scientific_numbers(self):
+        """Test that scientific notation numbers are properly interpreted."""
+        interpretations = self.converter.get_interpretations("1.5e9")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "scientific"
+        assert interpretations[0].value == 1500000000
+
+        interpretations = self.converter.get_interpretations("2.3E-4")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "scientific"
+        assert interpretations[0].value == 0.00023
+
+    def test_get_interpretations_negative_numbers(self):
+        """Test that negative numbers are properly interpreted."""
+        interpretations = self.converter.get_interpretations("-123")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "decimal"
+        assert interpretations[0].value == -123
+
+    def test_get_interpretations_invalid_inputs(self):
+        """Test that invalid inputs return no interpretations."""
+        assert len(self.converter.get_interpretations("")) == 0
+        assert len(self.converter.get_interpretations("xyz")) == 0  # invalid hex
+        assert len(self.converter.get_interpretations("12g34")) == 0  # invalid mixed
+        assert len(self.converter.get_interpretations("0b12345")) == 0  # invalid binary
+
+    # Test convert_value method
+    def test_convert_value_basic_formats(self):
+        """Test that convert_value produces all expected output formats."""
+        result = self.converter.convert_value(255)
+        expected_keys = {"Decimal", "Hexadecimal", "Binary", "Octal"}
         assert set(result.keys()) == expected_keys
         assert result["Decimal"] == "255"
         assert result["Hexadecimal"] == "0xff"
         assert result["Binary"] == "0b11111111"
         assert result["Octal"] == "0o377"
 
-    def test_convert_zero(self):
-        """Test conversion of zero."""
-        result = self.converter.convert("0")
-        expected_keys = {"Decimal", "Hexadecimal", "Binary", "Octal"}
-        assert set(result.keys()) == expected_keys
-        assert result["Decimal"] == "0"
-        assert result["Hexadecimal"] == "0x0"
-        assert result["Binary"] == "0b0"
-        assert result["Octal"] == "0o0"
-
-    def test_convert_with_whitespace(self):
-        """Test conversion with whitespace."""
-        result = self.converter.convert("  42  ")
-        expected_keys = {"Decimal", "Hexadecimal", "Binary", "Octal"}
-        assert set(result.keys()) == expected_keys
-        assert result["Decimal"] == "42"
-        assert result["Hexadecimal"] == "0x2a"
-        assert result["Binary"] == "0b101010"
-        assert result["Octal"] == "0o52"
-
-    def test_convert_hex_input(self):
-        """Test conversion of hexadecimal input."""
-        result = self.converter.convert("0xFF")
-        assert result["Decimal"] == "255"
-        assert result["Hexadecimal"] == "0xff"
-
-    def test_convert_large_number(self):
-        """Test conversion of large numbers with scientific notation."""
-        result = self.converter.convert("1500000000")
+    def test_convert_value_large_number_with_scientific(self):
+        """Test conversion of large numbers includes scientific notation and formatting."""
+        result = self.converter.convert_value(1500000000)
         expected_keys = {
             "Decimal",
             "Scientific",
@@ -100,13 +136,55 @@ class TestNumberConverter:
             "Human Readable",
         }
         assert set(result.keys()) == expected_keys
-        assert result["Decimal"] == "1,500,000,000"
+        assert result["Decimal"] == "1500000000"  # No commas
         assert result["Scientific"] == "1.50e+09"
+
+    def test_convert_value_negative_number(self):
+        """Test that negative numbers include all formats with proper signs."""
+        result = self.converter.convert_value(-42)
+        assert result["Decimal"] == "-42"
+        # Negative numbers do show hex/binary/octal with minus signs
+        assert result["Hexadecimal"] == "-0x2a"
+        assert result["Binary"] == "-0b101010"
+        assert result["Octal"] == "-0o52"
+
+    def test_convert_value_float(self):
+        """Test that floats exclude integer base formats."""
+        result = self.converter.convert_value(123.456)
+        assert result["Decimal"] == "123.456"
+        # Should not have integer formats for floats
+        assert "Binary" not in result
+        assert "Hexadecimal" not in result
+        assert "Octal" not in result
+        # Small floats don't get scientific notation automatically
+        assert "Scientific" not in result
 
     def test_get_name(self):
         """Test converter name."""
-        assert self.converter.get_name() == "Number Base"
+        assert self.converter.get_name() == "Number"
 
+    def test_choose_display_value(self):
+        """Test display value selection."""
+        # Test with Human Readable format present (large number)
+        formats_with_human = {
+            "Decimal": "1500000000",
+            "Scientific": "1.50e+09",
+            "Human Readable": "1.5 billion",
+            "Hexadecimal": "0x59682f00",
+            "Binary": "0b1011001011010000010111100000000",
+            "Octal": "0o13150057400",
+        }
+        display_value = self.converter.choose_display_value(
+            formats_with_human, "decimal"
+        )
+        assert display_value == "1.5 billion"
 
-if __name__ == "__main__":
-    pytest.main([__file__])
+        # Test without Human Readable format (smaller number)
+        formats_no_human = {
+            "Decimal": "255",
+            "Hexadecimal": "0xff",
+            "Binary": "0b11111111",
+            "Octal": "0o377",
+        }
+        display_value = self.converter.choose_display_value(formats_no_human, "decimal")
+        assert display_value is None  # Should return None when preferred format missing

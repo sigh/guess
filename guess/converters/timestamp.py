@@ -3,27 +3,24 @@ Timestamp converter for Unix timestamps and date formats.
 """
 
 from datetime import datetime, timezone
-from typing import Dict, Any
-from guess.converters.base import Converter
+from typing import Dict, Any, List
+from guess.converters.base import Converter, Interpretation
 
 
 class TimestampConverter(Converter):
     """Converts Unix timestamps to human-readable date formats."""
 
-    def can_convert(self, input_str: str) -> bool:
-        """Check if input looks like a Unix timestamp."""
+    def get_interpretations(self, input_str: str) -> List[Interpretation]:
+        """Get all possible interpretations of the input as a timestamp."""
         cleaned = input_str.strip()
+        interpretations = []
 
-        # Check if it's a valid integer (including negative)
         try:
             timestamp = int(cleaned)
         except ValueError:
-            return False
+            return interpretations
 
         # Check if it's a reasonable timestamp length
-        # 10 digits = seconds since epoch (up to year 2286)
-        # 13 digits = milliseconds since epoch (up to year 2286)
-        # Handle negative numbers by checking absolute value length
         if cleaned.startswith("-"):
             abs_str = cleaned[1:]
         else:
@@ -31,34 +28,34 @@ class TimestampConverter(Converter):
 
         length = len(abs_str)
 
-        if length == 10 or length == 13 or (timestamp < 0 and length >= 3):
-            # Convert to seconds for range check
+        # Check for seconds interpretation (10 digits or reasonable range)
+        if length == 10 or (timestamp < 0 and length >= 3):
             timestamp_seconds = timestamp
-            if length == 13:
-                timestamp_seconds = timestamp // 1000
+            # Reasonable range check
+            if -2208988800 <= timestamp_seconds <= 4102444800:
+                interpretations.append(
+                    Interpretation(description="unix seconds", value=timestamp * 1000)
+                )
 
-            # Reasonable range: 1900 to 2100 (allows negative timestamps)
-            # -2208988800 = 1900-01-01, 4102444800 = 2100-01-01
-            return -2208988800 <= timestamp_seconds <= 4102444800
+        # Check for milliseconds interpretation (13 digits)
+        if length == 13:
+            timestamp_seconds = timestamp // 1000
+            # Reasonable range check
+            if -2208988800 <= timestamp_seconds <= 4102444800:
+                interpretations.append(
+                    Interpretation(description="unix milliseconds", value=timestamp)
+                )
 
-        return False
+        return interpretations
 
-    def convert(self, input_str: str) -> Dict[str, Any]:
-        """Convert Unix timestamp to various date formats."""
+    def convert_value(self, value: Any) -> Dict[str, Any]:
+        """Convert a timestamp value to various formats."""
+        # Value is always in milliseconds from get_interpretations()
+        timestamp_ms = value
+
         try:
-            timestamp_str = input_str.strip()
-            timestamp = int(timestamp_str)
-
-            # Determine if it's seconds or milliseconds
-            abs_str = str(abs(timestamp))
-            if len(abs_str) == 13:
-                # Milliseconds
-                timestamp_seconds = timestamp / 1000
-                milliseconds = abs(timestamp) % 1000
-            else:
-                # Seconds
-                timestamp_seconds = timestamp
-                milliseconds = 0
+            # Convert to seconds for datetime operations
+            timestamp_seconds = timestamp_ms / 1000
 
             # Create datetime objects
             dt_utc = datetime.fromtimestamp(timestamp_seconds, tz=timezone.utc)
@@ -72,8 +69,8 @@ class TimestampConverter(Converter):
 
             # Format results
             result = {
-                "Unix Seconds": str(int(timestamp_seconds)),
-                "Unix Milliseconds": str(int(timestamp_seconds * 1000)),
+                "Unix Seconds": f"{int(timestamp_seconds)} (unix seconds)",
+                "Unix Milliseconds": f"{int(timestamp_ms)} (unix milliseconds)",
                 "UTC": dt_utc.strftime("%Y-%m-%d %H:%M:%S UTC"),
                 "Local Time": dt_local.strftime("%Y-%m-%d %H:%M:%S"),
                 "ISO 8601": dt_utc.isoformat().replace("+00:00", "Z"),
@@ -113,3 +110,10 @@ class TimestampConverter(Converter):
     def get_name(self) -> str:
         """Get the name of this converter."""
         return "Timestamp"
+
+    def choose_display_value(
+        self, formats: Dict[str, Any], interpretation_description: str
+    ) -> str:
+        """Choose the most readable display value for timestamp formats."""
+        # Prioritize readable formats that show month names or UTC
+        return formats.get("Human Readable")

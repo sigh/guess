@@ -3,8 +3,8 @@ Color converter for RGB values, hex codes, and color names.
 """
 
 import re
-from typing import Dict, Any
-from guess.converters.base import Converter
+from typing import Dict, Any, List
+from guess.converters.base import Converter, Interpretation
 
 
 class ColorConverter(Converter):
@@ -32,66 +32,81 @@ class ColorConverter(Converter):
         # Reverse mapping for RGB to name
         self.rgb_to_name = {v: k for k, v in self.color_names.items() if k != "grey"}
 
-    def can_convert(self, input_str: str) -> bool:
-        """Check if input looks like a color."""
+    def get_interpretations(self, input_str: str) -> List[Interpretation]:
+        """Get all possible interpretations of the input as a color."""
         cleaned = input_str.strip().lower()
+        interpretations = []
 
-        # Check for hex color codes (#FF0000, #00FF00, etc.)
+        # Check for hex color codes
         if re.match(r"^#[0-9a-f]{6}$", cleaned):
-            return True
+            try:
+                r = int(cleaned[1:3], 16)
+                g = int(cleaned[3:5], 16)
+                b = int(cleaned[5:7], 16)
+                interpretations.append(
+                    Interpretation(description="hex", value=(r, g, b))
+                )
+            except ValueError:
+                pass
 
         # Check for color names
-        if cleaned in self.color_names:
-            return True
+        elif cleaned in self.color_names:
+            rgb = self.color_names[cleaned]
+            interpretations.append(Interpretation(description="name", value=rgb))
 
-        # Check for RGB values (0-255 range)
-        if cleaned.isdigit():
-            value = int(cleaned)
-            return 0 <= value <= 255
-
-        # Check for hex values that could be RGB components
-        if re.match(r"^0x[0-9a-f]+$", cleaned):
+        # Check for hex values (0xFF, 0xff)
+        elif cleaned.startswith("0x"):
             try:
                 value = int(cleaned, 16)
-                return 0 <= value <= 255
+                if 0 <= value <= 255:
+                    interpretations.append(
+                        Interpretation(description="red", value=(value, 0, 0))
+                    )
+                    interpretations.append(
+                        Interpretation(
+                            description="grayscale", value=(value, value, value)
+                        )
+                    )
             except ValueError:
-                return False
+                pass
 
-        return False
+        # Check for RGB component values (0-255)
+        elif cleaned.isdigit():
+            value = int(cleaned)
+            if 0 <= value <= 255:
+                # When used with explicit color command, treat as red component
+                interpretations.append(
+                    Interpretation(description="red", value=(value, 0, 0))
+                )
+                # Also include grayscale interpretation
+                interpretations.append(
+                    Interpretation(description="grayscale", value=(value, value, value))
+                )
 
-    def convert(self, input_str: str) -> Dict[str, Any]:
-        """Convert color to various formats."""
-        try:
-            cleaned = input_str.strip().lower()
+        return interpretations
 
-            # Parse input to get RGB values
-            rgb = self._parse_color_input(cleaned)
-            if rgb is None:
-                return {}
+    def convert_value(self, value: Any) -> Dict[str, Any]:
+        """Convert a color value to various formats."""
+        r, g, b = value
 
-            r, g, b = rgb
+        # Generate output formats
+        result = {}
 
-            # Generate output formats
-            result = {}
+        # Hex color code
+        result["Hex"] = f"#{r:02x}{g:02x}{b:02x}"
 
-            # Hex color code
-            result["Hex"] = f"#{r:02x}{g:02x}{b:02x}"
+        # RGB values
+        result["RGB"] = f"rgb({r}, {g}, {b})"
 
-            # RGB values
-            result["RGB"] = f"rgb({r}, {g}, {b})"
+        # HSL values
+        h, s, L = self._rgb_to_hsl(r, g, b)
+        result["HSL"] = f"hsl({h}, {s}%, {L}%)"
 
-            # HSL values
-            h, s, l = self._rgb_to_hsl(r, g, b)
-            result["HSL"] = f"hsl({h}, {s}%, {l}%)"
+        # Color name (if applicable)
+        if (r, g, b) in self.rgb_to_name:
+            result["Name"] = self.rgb_to_name[(r, g, b)]
 
-            # Color name (if applicable)
-            if rgb in self.rgb_to_name:
-                result["Name"] = self.rgb_to_name[rgb]
-
-            return result
-
-        except (ValueError, TypeError):
-            return {}
+        return result
 
     def _parse_color_input(self, input_str: str):
         """Parse color input to RGB tuple."""
@@ -135,7 +150,7 @@ class ColorConverter(Converter):
         diff = max_val - min_val
 
         # Lightness
-        l = (max_val + min_val) / 2
+        L = (max_val + min_val) / 2
 
         if diff == 0:
             h = s = 0  # achromatic
@@ -143,7 +158,7 @@ class ColorConverter(Converter):
             # Saturation
             s = (
                 diff / (2 - max_val - min_val)
-                if l > 0.5
+                if L > 0.5
                 else diff / (max_val + min_val)
             )
 
@@ -156,8 +171,15 @@ class ColorConverter(Converter):
                 h = (r - g) / diff + 4
             h /= 6
 
-        return (int(h * 360), int(s * 100), int(l * 100))
+        return (int(h * 360), int(s * 100), int(L * 100))
 
     def get_name(self) -> str:
         """Get the name of this converter."""
         return "Color"
+
+    def choose_display_value(
+        self, formats: Dict[str, Any], interpretation_description: str
+    ) -> str:
+        """Choose the most readable display value for color formats."""
+        # Prefer hex format as it's most commonly used for colors
+        return formats.get("Hex")

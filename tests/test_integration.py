@@ -96,7 +96,7 @@ class TestCLIIntegration:
         # Byte size with units
         returncode, stdout, stderr = self.run_guess("1GB")
         assert returncode == 0
-        assert "1,000,000,000" in stdout
+        assert "1000000000" in stdout
 
         # Hex number
         returncode, stdout, stderr = self.run_guess("0xFF")
@@ -110,8 +110,8 @@ class TestCLIIntegration:
 
         # Should show multiple interpretations
         assert "Number (from decimal):" in stdout
-        assert "Timestamp (from unix timestamp):" in stdout
-        assert "Bytes (from byte count):" in stdout
+        assert "Timestamp (from unix seconds):" in stdout
+        assert "Size (from bytes):" in stdout
 
     def test_single_interpretation_mode(self):
         """Test that unambiguous inputs show single interpretation."""
@@ -119,7 +119,7 @@ class TestCLIIntegration:
         assert returncode == 0
 
         # Should show single interpretation with multiple formats
-        assert "Duration (from input):" in stdout
+        assert "Duration (from string):" in stdout
         assert "1 hour, 30 minutes" in stdout
         assert "1h30m" in stdout
 
@@ -164,12 +164,12 @@ class TestCLIIntegration:
         # File permissions - now handled by permission converter
         returncode, stdout, stderr = self.run_guess("755")
         assert returncode == 0
-        assert "Permission:" in stdout  # Permission converter triggered
+        assert "Permission (from octal):" in stdout  # Permission converter triggered
 
         # RGB context - now handled by color converter
         returncode, stdout, stderr = self.run_guess("255")
         assert returncode == 0
-        assert "Color:" in stdout  # Color converter triggered
+        assert "Color (from red):" in stdout  # Color converter triggered
 
     def test_binary_and_octal_inputs(self):
         """Test binary and octal input parsing."""

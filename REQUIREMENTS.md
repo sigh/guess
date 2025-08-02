@@ -74,12 +74,13 @@ guess <value> <unit>     # Unit implies interpretation
 
 - **Input Formats**:
   - Raw bytes: `1048576`
-  - With units: `1MB`, `2.5GB`, `512KB`
+  - With units: `1MB`, `2.5GB`, `512KB` (decimal), `1MiB`, `2.5GiB`, `512KiB` (binary)
   - Binary vs decimal (1024 vs 1000 based)
 - **Output Formats**:
   - Human readable with appropriate units
   - Multiple unit representations
-  - Both binary (1024) and decimal (1000) calculations
+  - Decimal (1000-based) with standard units: KB, MB, GB, TB
+  - Binary (1024-based) with IEC units: KiB, MiB, GiB, TiB
 
 ### 4. Number Base Conversion
 
@@ -89,8 +90,11 @@ guess <value> <unit>     # Unit implies interpretation
   - Binary: `0b11111111`, `11111111b`
   - Octal: `0o377`, `377o`
 - **Output Formats**:
-  - All bases (decimal, hex, binary, octal)
-  - Formatted for different programming languages
+  - All bases (decimal, hex, binary, octal) using least ambiguous notation
+  - Decimal: standard and scientific notation for large numbers
+  - Hexadecimal: `0xFF` (not `FF` or `#FF`)
+  - Binary: `0b11111111` (not unprefixed)
+  - Octal: `0o377` (not unprefixed)
   - Common programming contexts (RGB colors for 0-255, file permissions for 3-4 digit octals)
 
 ### 5. Type-Specific Commands
@@ -199,7 +203,21 @@ Interpretations:
 
 #### Mode 2: Multiple Formats (Unambiguous Input)
 
-When the interpretation is clear (explicit type specified or units provided), show **multiple formats of the same interpretation**.
+When the interpretation is clear (explicit type specified or units provided), show **semantically different formats of the same interpretation**. Avoid showing multiple syntactic variations that convey the same information.
+
+**Semantic differences** (show multiple):
+
+- Timestamp: seconds vs milliseconds (different precision)
+- Timestamp: UTC vs local time (different timezones)
+- Byte size: decimal (1000-based) vs binary (1024-based) calculations
+- Duration: human readable vs compact vs raw units
+- Numbers: decimal vs scientific notation (different representations)
+
+**Syntactic differences** (show only the least ambiguous):
+
+- Hex: `0xFF` vs `FF` vs `#FF` → show only `0xFF` (least ambiguous)
+- Binary: `0b11111111` vs `11111111` → show only `0b11111111` (least ambiguous)
+- Octal: `0o377` vs `377` → show only `0o377` (least ambiguous)
 
 **Example**: `guess time 1722628800` or `guess 1722628800s`
 
@@ -223,6 +241,12 @@ Formats:
 └─────────────────┴──────────────────────────────────────┘
 ```
 
+├─────────────────┼──────────────────────────────────────┤
+│ ISO 8601        │ 2024-08-02T16:00:00.000Z            │
+└─────────────────┴──────────────────────────────────────┘
+
+```
+
 ### Smart Detection Algorithm
 
 When no type is specified, `guess` should use heuristics to determine plausible interpretations:
@@ -238,7 +262,7 @@ When no type is specified, `guess` should use heuristics to determine plausible 
 2. **Format detection** (forces single interpretation):
    - Contains date separators (`-`, `/`): Timestamp only
    - Contains time units (`s`, `m`, `h`, `d`): Duration only
-   - Contains size units (`B`, `KB`, `MB`, `GB`): Byte size only
+   - Contains size units (`B`, `KB`, `MB`, `GB`, `KiB`, `MiB`, `GiB`): Byte size only
    - Contains base prefixes (`0x`, `0b`, `0o`): Number base only
    - Scientific notation (`1.5e9`, `2E+6`): Treat as decimal number
 
@@ -308,14 +332,35 @@ Formats:
 ├─────────────────┼──────────────────────────────────────┤
 │ Decimal         │ 255                                  │
 ├─────────────────┼──────────────────────────────────────┤
-│ Hexadecimal     │ 0xFF / FF / #FF                      │
+│ Hexadecimal     │ 0xFF                                 │
 ├─────────────────┼──────────────────────────────────────┤
-│ Binary          │ 0b11111111 / 11111111                │
+│ Binary          │ 0b11111111                           │
 ├─────────────────┼──────────────────────────────────────┤
-│ Octal           │ 0o377 / 377                          │
+│ Octal           │ 0o377                                │
 ├─────────────────┼──────────────────────────────────────┤
 │ Context         │ RGB Color: #FF0000 (red)             │
 │                 │ File permission: 255 (invalid)       │
+└─────────────────┴──────────────────────────────────────┘
+```
+
+#### Large number with scientific notation: `guess number 1500000000`
+
+```text
+Input: 1500000000 (number)
+
+Formats:
+┌─────────────────┬──────────────────────────────────────┐
+│ Format          │ Value                                │
+├─────────────────┼──────────────────────────────────────┤
+│ Decimal         │ 1,500,000,000                       │
+├─────────────────┼──────────────────────────────────────┤
+│ Scientific      │ 1.5e+09                             │
+├─────────────────┼──────────────────────────────────────┤
+│ Hexadecimal     │ 0x59682F00                          │
+├─────────────────┼──────────────────────────────────────┤
+│ Binary          │ 0b1011001011010000010111100000000   │
+├─────────────────┼──────────────────────────────────────┤
+│ Octal           │ 0o13132027400                       │
 └─────────────────┴──────────────────────────────────────┘
 ```
 

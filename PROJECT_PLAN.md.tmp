@@ -63,7 +63,7 @@ Development of a command-line utility called "guess" that performs intelligent c
    - [ ] Implement `detect_format_patterns()` method using regex:
      - [ ] Date separators (`-`, `/`)
      - [ ] Time units (`s`, `m`, `h`, `d`, `w`)
-     - [ ] Size units (`B`, `KB`, `MB`, `GB`, `TB`)
+     - [ ] Size units (`B`, `KB`, `MB`, `GB`, `TB`, `KiB`, `MiB`, `GiB`, `TiB`)
      - [ ] Number base prefixes (`0x`, `0b`, `0o`, `#`)
      - [ ] Scientific notation (`1.5e9`, `2E+6`)
    - [ ] Create confidence scoring system (0-100%)
@@ -97,7 +97,9 @@ Development of a command-line utility called "guess" that performs intelligent c
 
 ### Phase 3: Core Converters Implementation (3-4 days)
 
-**Goal**: Implement the four main conversion types
+**Goal**: Implement the four main conversion types with simplified output
+
+**Output Principle**: Show only semantically different formats. For syntactic variations (e.g., `0xFF` vs `#FF`), use the least ambiguous format only.
 
 #### Tasks
 
@@ -109,10 +111,10 @@ Development of a command-line utility called "guess" that performs intelligent c
      - [ ] Validate reasonable date ranges (1970-2100)
    - [ ] Implement ISO 8601 parsing using `datetime.fromisoformat()`
    - [ ] Implement human-readable date parsing with `datetime.strptime()`
-   - [ ] Create multiple output formats:
+   - [ ] Create multiple output formats (semantically different only):
      - [ ] Local time with timezone detection
      - [ ] UTC time formatting
-     - [ ] Unix timestamp (both seconds and milliseconds)
+     - [ ] Unix timestamp (both seconds and milliseconds - different precision)
      - [ ] Relative time ("2 days ago", "in 3 hours")
      - [ ] ISO 8601 formatted output
    - [ ] Write comprehensive tests in `tests/test_timestamp.py`
@@ -133,12 +135,12 @@ Development of a command-line utility called "guess" that performs intelligent c
    - [ ] Create `guess/converters/bytesize.py` with `ByteSizeConverter` class
    - [ ] Implement raw byte parsing for large integers
    - [ ] Implement unit parsing with case-insensitive matching:
-     - [ ] Binary units: `KB`, `MB`, `GB`, `TB` (1024-based)
-     - [ ] Decimal units: `kB`, `mB`, `gB`, `tB` (1000-based)
+     - [ ] Decimal units: `KB`, `MB`, `GB`, `TB` (1000-based)
+     - [ ] Binary units: `KiB`, `MiB`, `GiB`, `TiB` (1024-based)
      - [ ] Handle decimal inputs: `2.5GB`, `1.5TB`
    - [ ] Create dual output formatting:
-     - [ ] Binary calculations (1024-based) with "iB" suffix
-     - [ ] Decimal calculations (1000-based) with "B" suffix
+     - [ ] Decimal calculations (1000-based) with standard units: KB, MB, GB, TB
+     - [ ] Binary calculations (1024-based) with IEC units: KiB, MiB, GiB, TiB
      - [ ] Raw byte count with comma formatting
    - [ ] Implement multiple unit representations
    - [ ] Write tests in `tests/test_bytesize.py`
@@ -151,13 +153,14 @@ Development of a command-line utility called "guess" that performs intelligent c
      - [ ] Binary: `0b11111111`, `11111111b`
      - [ ] Octal: `0o377`, `377o`
    - [ ] Implement output formatting for all bases:
-     - [ ] Decimal representation
-     - [ ] Multiple hex formats (`0xFF`, `FF`, `#FF`)
-     - [ ] Binary with and without prefix
-     - [ ] Octal with and without prefix
+     - [ ] Decimal representation (standard and scientific for large numbers)
+     - [ ] Hexadecimal: `0xFF` format (least ambiguous)
+     - [ ] Binary: `0b11111111` format (with prefix)
+     - [ ] Octal: `0o377` format (with prefix)
    - [ ] Add context-aware features:
      - [ ] RGB color representation for 0-255 values
      - [ ] File permission interpretation for 3-4 digit octals
+     - [ ] Scientific notation for numbers >= 1,000,000 or <= 0.001
    - [ ] Handle large numbers appropriately (truncate binary display)
    - [ ] Write tests in `tests/test_numberbase.py`
 

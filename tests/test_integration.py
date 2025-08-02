@@ -166,10 +166,11 @@ class TestCLIIntegration:
         assert returncode == 0
         assert "Permission (from octal):" in stdout  # Permission converter triggered
 
-        # RGB context - now handled by color converter
-        returncode, stdout, stderr = self.run_guess("255")
+        # RGB context - decimal values no longer trigger color converter
+        # Test with explicit hex color instead
+        returncode, stdout, stderr = self.run_guess("#FF0000")
         assert returncode == 0
-        assert "Color (from red):" in stdout  # Color converter triggered
+        assert "Color (from hex):" in stdout  # Color converter triggered
 
     def test_binary_and_octal_inputs(self):
         """Test binary and octal input parsing."""

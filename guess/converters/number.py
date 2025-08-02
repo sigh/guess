@@ -34,12 +34,6 @@ class NumberConverter(Converter):
                 interpretations.append(Interpretation(description="hex", value=value))
             except ValueError:
                 pass
-        elif cleaned.startswith("#") and re.match(r"^-?#[0-9a-f]+$", cleaned):
-            try:
-                value = int(cleaned[1:], 16)
-                interpretations.append(Interpretation(description="hex", value=value))
-            except ValueError:
-                pass
         elif (
             re.match(r"^-?[0-9a-f]+$", cleaned)
             and any(c in cleaned for c in "abcdef")

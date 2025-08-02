@@ -47,12 +47,6 @@ class TestNumberConverter:
         assert interpretations[0].description == "hex"
         assert interpretations[0].value == 255
 
-        # # prefix
-        interpretations = self.converter.get_interpretations("#FF")
-        assert len(interpretations) == 1
-        assert interpretations[0].description == "hex"
-        assert interpretations[0].value == 255
-
         # Plain hex (no prefix)
         interpretations = self.converter.get_interpretations("abc")
         assert len(interpretations) == 1
@@ -112,6 +106,9 @@ class TestNumberConverter:
         assert len(self.converter.get_interpretations("xyz")) == 0  # invalid hex
         assert len(self.converter.get_interpretations("12g34")) == 0  # invalid mixed
         assert len(self.converter.get_interpretations("0b12345")) == 0  # invalid binary
+        assert (
+            len(self.converter.get_interpretations("#FF")) == 0
+        )  # # prefix reserved for colors
 
     # Test convert_value method
     def test_convert_value_basic_formats(self):

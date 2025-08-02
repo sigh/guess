@@ -42,7 +42,7 @@ guess <value> <unit>     # Unit implies interpretation
 - `guess 1722628800s` → Multiple timestamp formats only (unit implies type)
 - `guess 2GB` → Multiple byte size formats only (unit implies type)
 - `guess 0xFF` → Multiple number formats only (prefix implies type)
-- `guess 255` → Multiple interpretations (number, color value)
+- `guess 255` → Multiple interpretations (number, duration, permission)
 - `guess #FF0000` → Color formats only (hex color implies type)
 - `guess 0755` → File permission formats only (octal with leading zero implies type)
 
@@ -90,7 +90,7 @@ guess <value> <unit>     # Unit implies interpretation
 
 - **Input Formats**:
   - Decimal: `255`
-  - Hexadecimal: `0xFF`, `FF`, `#FF`
+  - Hexadecimal: `0xFF`, `FF`
   - Binary: `0b11111111`, `11111111b`
   - Octal: `0o377`, `377o`
   - Scientific notation: `1.5e9`, `2.4E+6`, `1.23e-4`, `5E10` (robust parsing of all standard forms)
@@ -105,14 +105,20 @@ guess <value> <unit>     # Unit implies interpretation
 ### 5. Color Conversion
 
 - **Input Formats**:
-  - RGB values: `255`, `0xFF`, `#FF0000`
   - Color names: `red`, `blue`, `green`
-  - Hex color codes: `#FF0000`, `#00FF00`, `#0000FF`
+  - Hex color codes (6-digit): `#FF0000`, `#00FF00`, `#0000FF`
+  - Hex color codes (3-digit): `#F00`, `#0F0`, `#00F`
+  - RGB with integers: `rgb(255, 0, 0)`, `rgb(128, 64, 192)`
+  - RGB with floats: `rgb(1.0, 0.0, 0.5)`, `rgb(0.5, 0.25, 0.75)`
+  - RGB with percentages: `rgb(100%, 0%, 50%)`, `rgb(50%, 25%, 75%)`
+  - HSL format: `hsl(0, 100%, 50%)`
 - **Output Formats**:
   - Hex color code: `#FF0000`
   - RGB values: `rgb(255, 0, 0)`
-  - Color name (when applicable): `red`
+  - RGB percentages: `rgb(100%, 0%, 0%)`
   - HSL values: `hsl(0, 100%, 50%)`
+  - Color square (visual representation with xterm-256 colors)
+  - Color name (when applicable): `red`
 
 ### 6. File Permission Conversion
 
@@ -142,7 +148,7 @@ guess <value> <unit>     # Unit implies interpretation
 - **Scientific notation**: Robust support for all standard forms including `1.5e9`, `2.4E+6`, `1.23e-4`, `5E10`
 - **Negative values**: Handle negative timestamps (pre-1970) and durations
 - **Flexible unit parsing**: Handle whitespace variations between numbers and units (`2GB`, `2 GB`, `2.5 GiB`)
-- **Color recognition**: Detect RGB values (0-255), hex color codes (#RRGGBB), and common color names
+- **Color recognition**: Detect hex color codes (#RRGGBB, #RGB), rgb() format, hsl() format, and common color names
 - **Permission detection**: Recognize octal file permissions (755, 0644) and symbolic notation (rwxr-xr-x)
 - **Human readable numbers**: Convert large numbers to readable format (million, billion, trillion, quadrillion) for range 100,000 to 1,000,000,000,000,000 (0.1 million to 1000 quadrillion)
 
@@ -282,7 +288,6 @@ When no type is specified, `guess` should use heuristics to determine plausible 
 
 3. **Context-aware detection**:
    - Leading zeros with 3-4 digits: File permissions (`755`, `0644`)
-   - Values 0-255: Include RGB color value interpretation
    - Color names (`red`, `blue`, `green`): Color interpretation
    - Values 1-65535: Include port number context
    - Reasonable timestamp ranges: Exclude obviously invalid dates
@@ -327,13 +332,15 @@ Number (from hex):
   0o377
 ```
 
-#### Color value: `guess color 255`
+#### Color value: `guess color #FF0000`
 
 ```text
-Color (from rgb):
-  #FF0000
+Color (from hex):
+  #ff0000
   rgb(255, 0, 0)
+  rgb(100%, 0%, 0%)
   hsl(0, 100%, 50%)
+  <red square>
   red
 ```
 

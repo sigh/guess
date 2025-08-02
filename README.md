@@ -1,80 +1,70 @@
-# Guess - Intelligent Data Format Conversion Utility
+# Guess - Universal Conversion Utility
 
-A command-line utility that intelligently converts between different data formats commonly used in programming and software management.
+A simple command-line tool that converts numbers, timestamps, durations, and byte sizes between different formats.
 
 ## Features
 
-- **Number Base Conversion**: Convert between decimal, hexadecimal, binary, and octal
-- **Smart Detection**: Automatically detects input format and provides multiple interpretations
-- **Clean CLI Interface**: Simple and intuitive command-line interface
+- Number base conversion (decimal, hex, binary, octal)
+- Timestamp conversion (Unix to human-readable)
+- Duration conversion (seconds to readable format)
+- Byte size conversion (bytes to KB/MB/GB)
+- Smart detection of input types
+- Clean table output
 
 ## Installation
 
-Clone the repository and install in development mode:
-
 ```bash
-git clone <repository-url>
+git clone https://github.com/sigh/guess
 cd guess
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -e .
 ```
+
+Requires Python 3.8+
 
 ## Usage
 
 ### Basic Usage
 
-Convert a decimal number to different bases:
 ```bash
-python -m guess 255
+guess 1722628800
 ```
 
-Output:
-```
-Decimal: 255
-Hexadecimal: 0xff
-Binary: 0b11111111
-Octal: 0o377
-```
+Shows all possible interpretations (number, timestamp, duration, byte size).
 
-### Help
-
-Show help and usage information:
-```bash
-python -m guess --help
-```
-
-## Development
-
-### Running Tests
+### Type-Specific Commands
 
 ```bash
-pytest tests/
+guess time 1722628800    # Force timestamp interpretation
+guess duration 3661      # Force duration interpretation
+guess size 1048576       # Force byte size interpretation
+guess number 255         # Force number base interpretation
 ```
 
-### Code Formatting
+### Input Formats
+
+- **Numbers**: `255`, `0xFF`, `0b11111111`, `0o377`
+- **Timestamps**: `1722628800` (Unix seconds), `-86400` (pre-1970)
+- **Durations**: `3661` (seconds), `1h30m` (with units)
+- **Byte Sizes**: `1048576` (bytes), `1GB`, `2.5GiB`
+
+## Examples
 
 ```bash
-black guess/ tests/
+# Number conversion
+guess 255
+# Shows: decimal, hex, binary, octal, RGB color
+
+# Timestamp conversion
+guess time 1722628800
+# Shows: UTC time, local time, ISO format
+
+# Duration with units
+guess 1h30m
+# Shows: 5400 seconds, 90 minutes, 01:30:00
+
+# Byte size
+guess 1GB
+# Shows: decimal and binary interpretations
 ```
-
-### Linting
-
-```bash
-flake8 guess/ tests/
-```
-
-## Requirements
-
-- Python 3.8+
-- No external dependencies (uses only Python standard library)
-
-## Current Status
-
-This is currently in Phase 1 development with basic number conversion functionality.
-
-Coming soon:
-- Timestamp conversion (Unix timestamps, ISO 8601, relative times)
-- Duration conversion (seconds to human-readable, time units)
-- Byte size conversion (bytes, KB, MB, GB, etc.)
-- Enhanced output formatting with tables

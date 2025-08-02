@@ -81,7 +81,10 @@ class DurationConverter(Converter):
                 "Total Seconds": f"{total_seconds:,}",
                 "Total Minutes": f"{total_seconds / 60:.2f}",
                 "Total Hours": f"{total_seconds / 3600:.2f}",
-                "HH:MM:SS": f"{hours + days * 24 + weeks * 7 * 24:02d}:{minutes:02d}:{seconds:02d}",
+                "HH:MM:SS": (
+                    f"{hours + days * 24 + weeks * 7 * 24:02d}:"
+                    f"{minutes:02d}:{seconds:02d}"
+                ),
             }
 
             return result

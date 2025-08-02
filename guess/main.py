@@ -9,7 +9,28 @@ from guess.formatter import TableFormatter
 
 
 def main():
-    """Main entry point for the CLI."""
+    """
+    Main entry point for the guess CLI application.
+
+    Handles two modes of operation:
+    1. Explicit type commands: guess <type> <value>
+    2. Auto-detection mode: guess <value>
+
+    In explicit type mode, forces interpretation using a specific converter.
+    In auto-detection mode, tries all converters and shows multiple interpretations.
+
+    Args:
+        None (uses sys.argv for command-line arguments)
+
+    Returns:
+        None (exits with code 0 on success, 1 on error)
+
+    Examples:
+        guess 255                    # Multi-interpretation mode
+        guess number 255             # Force number conversion
+        guess time 1722628800        # Force timestamp conversion
+        guess --help                 # Show help
+    """
     # Check if first argument is a known subcommand
     subcommands = ["time", "duration", "size", "number"]
 

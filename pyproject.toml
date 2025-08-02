@@ -5,10 +5,30 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "guess"
 version = "1.0.0"
-description = "Intelligent data format conversion utility"
+description = "Universal conversion utility for numbers, timestamps, durations, and byte sizes"
 authors = [{name = "sigh"}]
+readme = "README.md"
+license = {text = "MIT"}
 requires-python = ">=3.8"
 dependencies = []
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+keywords = ["conversion", "utility", "cli", "timestamp", "duration", "bytes", "number"]
+
+[tool.setuptools.packages.find]
+include = ["guess*"]
+exclude = ["test_env*", "tests*"]
 
 [project.scripts]
 guess = "guess.main:main"

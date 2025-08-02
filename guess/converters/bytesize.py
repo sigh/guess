@@ -61,12 +61,16 @@ class ByteSizeConverter(Converter):
 
             result = {
                 "Raw Bytes": f"{total_bytes:,}",
-                "Decimal (1000)": " / ".join(decimal_units[:2])
-                if decimal_units
-                else f"{total_bytes} bytes",
-                "Binary (1024)": " / ".join(binary_units[:2])
-                if binary_units
-                else f"{total_bytes} bytes",
+                "Decimal (1000)": (
+                    " / ".join(decimal_units[:2])
+                    if decimal_units
+                    else f"{total_bytes} bytes"
+                ),
+                "Binary (1024)": (
+                    " / ".join(binary_units[:2])
+                    if binary_units
+                    else f"{total_bytes} bytes"
+                ),
             }
 
             # Add more detailed breakdown if there are multiple units

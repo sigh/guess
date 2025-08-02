@@ -33,7 +33,8 @@ class NumberConverter(Converter):
             return True
         if re.match(r"^-?#[0-9a-f]+$", cleaned):
             return True
-        # Only accept plain hex if it contains a-f characters and doesn't end with b or o
+        # Only accept plain hex if it contains a-f characters and doesn't end
+        # with b or o
         if (
             re.match(r"^-?[0-9a-f]+$", cleaned)
             and any(c in cleaned for c in "abcdef")

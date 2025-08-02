@@ -6,10 +6,35 @@ from typing import Dict, Any, List
 
 
 class TableFormatter:
-    """Formats converter results into nice tables."""
+    """
+    Formats converter results into beautiful Unicode tables.
+
+    This class handles two display modes:
+    1. Single interpretation mode: Shows all formats for one converter type
+    2. Multi-interpretation mode: Shows abbreviated results from multiple converters
+
+    The formatter uses Unicode box-drawing characters to create clean,
+    professional-looking tables that are easy to read in the terminal.
+    """
 
     def format_multiple_results(self, results_list: List[Dict[str, Any]]) -> str:
-        """Format multiple converter results with table formatting."""
+        """
+        Format multiple converter results with appropriate table formatting.
+
+        Automatically chooses between single-result formatting (shows all formats)
+        and multi-result formatting (shows abbreviated interpretations).
+
+        Args:
+            results_list: List of converter results, each containing
+                         'converter_name' and 'formats' keys
+
+        Returns:
+            Formatted table string ready for display, or empty string if no results
+
+        Example:
+            For single result: Shows detailed "Formats:" table
+            For multiple results: Shows "Interpretations:" comparison table
+        """
         if not results_list:
             return ""
 
@@ -109,7 +134,7 @@ class TableFormatter:
         # For number base converter, prioritize the core bases
         if "Decimal" in formats and "Hexadecimal" in formats:
             # This is likely a number converter - show core number formats first
-            priority_keys = ["Decimal", "Hexadecimal", "Binary", "Octal"]
+            priority_keys = ["Decimal", "Scientific", "Hexadecimal", "Binary", "Octal"]
             for key in priority_keys:
                 if key in formats:
                     formatted_value = str(formats[key])

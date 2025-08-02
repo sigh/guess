@@ -78,13 +78,7 @@ class DurationConverter(Converter):
             result = {
                 "Human Readable": human_readable,
                 "Compact": compact,
-                "Total Seconds": f"{total_seconds:,}",
-                "Total Minutes": f"{total_seconds / 60:.2f}",
-                "Total Hours": f"{total_seconds / 3600:.2f}",
-                "HH:MM:SS": (
-                    f"{hours + days * 24 + weeks * 7 * 24:02d}:"
-                    f"{minutes:02d}:{seconds:02d}"
-                ),
+                "Seconds": f"{total_seconds:,}",
             }
 
             return result

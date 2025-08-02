@@ -72,8 +72,17 @@ class NumberConverter(Converter):
             if num >= 1_000_000:
                 result["Decimal"] = f"{num:,}"
                 result["Scientific"] = f"{num:.2e}"
+                # Add human readable format for large numbers
+                human_readable = self._format_human_readable(num)
+                if human_readable:
+                    result["Human Readable"] = human_readable
             else:
                 result["Decimal"] = str(num)
+                # Add human readable for smaller numbers too if applicable
+                if isinstance(num, int) and num >= 100_000:
+                    human_readable = self._format_human_readable(num)
+                    if human_readable:
+                        result["Human Readable"] = human_readable
 
             # Only show other bases for integers
             if isinstance(num, int):
@@ -82,15 +91,6 @@ class NumberConverter(Converter):
                 )
                 result["Binary"] = f"0b{abs(num):b}" if num >= 0 else f"-0b{abs(num):b}"
                 result["Octal"] = f"0o{abs(num):o}" if num >= 0 else f"-0o{abs(num):o}"
-
-                # Special contexts for certain ranges
-                if 0 <= num <= 255:
-                    result["RGB Context"] = f"#{num:02x}{num:02x}{num:02x} (grayscale)"
-
-                # File permissions for 3-digit numbers between 0-777
-                if 0 <= num <= 777 and len(str(num)) == 3:
-                    perm = self._octal_to_permissions(str(num))
-                    result["File Permission"] = f"{num:03o} ({perm})"
 
             return result
 
@@ -140,25 +140,34 @@ class NumberConverter(Converter):
         except ValueError:
             return None
 
-    def _octal_to_permissions(self, octal_str: str) -> str:
-        """Convert 3-digit octal to rwx permissions."""
-        if len(octal_str) != 3:
-            return "invalid"
+    def _format_human_readable(self, num: float) -> str:
+        """Format number in human readable form (million, billion, etc.)."""
+        # Support range 100,000 to 1,000,000,000,000,000 (0.1 million to 1000 quadrillion)
+        abs_num = abs(num)
 
-        def digit_to_rwx(digit):
-            d = int(digit)
-            r = "r" if d & 4 else "-"
-            w = "w" if d & 2 else "-"
-            x = "x" if d & 1 else "-"
-            return r + w + x
+        if abs_num < 100_000:
+            return None
+        elif abs_num >= 1_000_000_000_000_000:  # 1 quadrillion or more
+            return None
+        elif abs_num >= 1_000_000_000_000:  # trillion
+            value = num / 1_000_000_000_000
+            unit = "trillion"
+        elif abs_num >= 1_000_000_000:  # billion
+            value = num / 1_000_000_000
+            unit = "billion"
+        elif abs_num >= 1_000_000:  # million
+            value = num / 1_000_000
+            unit = "million"
+        else:
+            return None
 
-        try:
-            owner = digit_to_rwx(octal_str[0])
-            group = digit_to_rwx(octal_str[1])
-            other = digit_to_rwx(octal_str[2])
-            return f"{owner}{group}{other}"
-        except (ValueError, IndexError):
-            return "invalid"
+        # Format with appropriate precision
+        if value == int(value):
+            return f"{int(value)} {unit}"
+        elif abs(value - round(value, 1)) < 0.001:
+            return f"{value:.1f} {unit}"
+        else:
+            return f"{value:.2f} {unit}"
 
     def get_name(self) -> str:
         """Get the name of this converter."""

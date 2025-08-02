@@ -72,18 +72,14 @@ class TimestampConverter(Converter):
 
             # Format results
             result = {
-                "Unix Timestamp": str(int(timestamp_seconds)),
-                "UTC Time": dt_utc.strftime("%Y-%m-%d %H:%M:%S UTC"),
+                "Unix Seconds": str(int(timestamp_seconds)),
+                "Unix Milliseconds": str(int(timestamp_seconds * 1000)),
+                "UTC": dt_utc.strftime("%Y-%m-%d %H:%M:%S UTC"),
                 "Local Time": dt_local.strftime("%Y-%m-%d %H:%M:%S"),
                 "ISO 8601": dt_utc.isoformat().replace("+00:00", "Z"),
-                "Relative Time": relative_time,
+                "Relative": relative_time,
                 "Human Readable": dt_local.strftime("%A, %B %d, %Y at %I:%M:%S %p"),
             }
-
-            # Add milliseconds info if applicable
-            if len(abs_str) == 13:
-                result["Milliseconds"] = str(milliseconds)
-                result["Unix Timestamp (ms)"] = timestamp_str
 
             return result
 

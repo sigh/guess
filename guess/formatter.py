@@ -1,5 +1,5 @@
 """
-Table formatter for pretty output display.
+Clean hierarchical formatter for output display.
 """
 
 from typing import Dict, Any, List
@@ -7,154 +7,137 @@ from typing import Dict, Any, List
 
 class TableFormatter:
     """
-    Formats converter results into beautiful Unicode tables.
+    Formats converter results into clean, hierarchical output.
 
     This class handles two display modes:
-    1. Single interpretation mode: Shows all formats for one converter type
-    2. Multi-interpretation mode: Shows abbreviated results from multiple converters
+    1. Mode 1 (Ambiguous Input): Shows one readable format per interpretation type
+    2. Mode 2 (Specific Type): Shows multiple formats of the same interpretation
 
-    The formatter uses Unicode box-drawing characters to create clean,
-    professional-looking tables that are easy to read in the terminal.
+    Uses simple indentation and clean spacing for readability without table formatting.
     """
 
     def format_multiple_results(self, results_list: List[Dict[str, Any]]) -> str:
         """
-        Format multiple converter results with appropriate table formatting.
+        Format multiple converter results with clean hierarchical formatting.
 
-        Automatically chooses between single-result formatting (shows all formats)
-        and multi-result formatting (shows abbreviated interpretations).
+        Mode 1 (Multiple Interpretations): Shows one readable format per type
+        Mode 2 (Single Type): Shows multiple formats of the same interpretation
 
         Args:
             results_list: List of converter results, each containing
                          'converter_name' and 'formats' keys
 
         Returns:
-            Formatted table string ready for display, or empty string if no results
+            Clean formatted string ready for display, or empty string if no results
 
         Example:
-            For single result: Shows detailed "Formats:" table
-            For multiple results: Shows "Interpretations:" comparison table
+            Mode 1: "Number: 255\nTimestamp: 2024-08-02 16:00:00 UTC"
+            Mode 2: "Number (from decimal):\n  255\n  0xFF\n  0b11111111"
         """
         if not results_list:
             return ""
 
         if len(results_list) == 1:
-            # Single result - use format table
-            return self._format_single_table(results_list[0])
+            # Mode 2: Single interpretation - show multiple formats
+            return self._format_single_result(results_list[0])
         else:
-            # Multiple results - use interpretations table
-            return self._format_interpretations_table(results_list)
+            # Mode 1: Multiple interpretations - show one format per type
+            return self._format_multiple_interpretations(results_list)
 
-    def _format_single_table(self, result: Dict[str, Any]) -> str:
-        """Format single converter result as a formats table."""
+    def _format_single_result(self, result: Dict[str, Any]) -> str:
+        """Format single converter result with multiple formats."""
         converter_name = result["converter_name"]
         formats = result["formats"]
 
         lines = []
-        lines.append(f"Input: (converted as {converter_name.lower()})")
-        lines.append("")
-        lines.append("Formats:")
-
-        # Calculate column widths
-        max_format_width = max(len(key) for key in formats.keys()) if formats else 0
-        max_value_width = (
-            max(len(str(value)) for value in formats.values()) if formats else 0
-        )
-
-        # Ensure minimum widths
-        format_width = max(max_format_width, 15)
-        value_width = max(max_value_width, 30)
-
-        # Table borders
-        top_border = f"┌─{'─' * format_width}─┬─{'─' * value_width}─┐"
-        separator = f"├─{'─' * format_width}─┼─{'─' * value_width}─┤"
-        bottom_border = f"└─{'─' * format_width}─┴─{'─' * value_width}─┘"
-
-        lines.append(top_border)
-        lines.append(f"│ {'Format':<{format_width}} │ {'Value':<{value_width}} │")
-        lines.append(separator)
+        # Create context-aware labels
+        if converter_name == "Number Base":
+            lines.append("Number (from input):")
+        elif converter_name == "Timestamp":
+            lines.append("Timestamp (from input):")
+        elif converter_name == "Duration":
+            lines.append("Duration (from input):")
+        elif converter_name == "Byte Size":
+            lines.append("Bytes (from input):")
+        else:
+            lines.append(f"{converter_name} (from input):")
 
         for key, value in formats.items():
-            lines.append(f"│ {key:<{format_width}} │ {str(value):<{value_width}} │")
-
-        lines.append(bottom_border)
+            lines.append(f"  {value}")
 
         return "\n".join(lines)
 
-    def _format_interpretations_table(self, results_list: List[Dict[str, Any]]) -> str:
-        """Format multiple converter results as interpretations table."""
+    def _format_multiple_interpretations(
+        self, results_list: List[Dict[str, Any]]
+    ) -> str:
+        """Format multiple converter results showing one format per type."""
         lines = []
-        lines.append("Interpretations:")
-        lines.append("")
 
-        # Calculate column widths
-        max_type_width = max(len(result["converter_name"]) for result in results_list)
-        type_width = max(max_type_width, 12)
-        value_width = 40
-
-        # Table borders
-        top_border = f"┌─{'─' * type_width}─┬─{'─' * value_width}─┐"
-        separator = f"├─{'─' * type_width}─┼─{'─' * value_width}─┤"
-        bottom_border = f"└─{'─' * type_width}─┴─{'─' * value_width}─┘"
-
-        lines.append(top_border)
-        lines.append(f"│ {'Type':<{type_width}} │ {'Value':<{value_width}} │")
-        lines.append(separator)
-
-        for i, result in enumerate(results_list):
+        for result in results_list:
             converter_name = result["converter_name"]
             formats = result["formats"]
 
-            # Get the most representative values for display
-            display_values = self._get_display_values(formats)
+            # Get the most representative value for this interpretation
+            display_value = self._get_primary_display_value(formats)
 
-            # Add first line
-            first_value = display_values[0] if display_values else ""
-            lines.append(
-                f"│ {converter_name:<{type_width}} │ {first_value:<{value_width}} │"
-            )
+            # Create more descriptive labels based on requirements
+            if converter_name == "Number Base":
+                lines.append("Number (from decimal):")
+            elif converter_name == "Timestamp":
+                # Determine if it's seconds or milliseconds based on the input
+                lines.append("Timestamp (from unix timestamp):")
+            elif converter_name == "Duration":
+                lines.append("Duration (from seconds):")
+            elif converter_name == "Byte Size":
+                lines.append("Bytes (from byte count):")
+            else:
+                lines.append(f"{converter_name}:")
 
-            # Add additional lines for this converter
-            for value in display_values[1:]:
-                lines.append(f"│ {'':<{type_width}} │ {value:<{value_width}} │")
+            lines.append(f"  {display_value}")
+            lines.append("")  # Empty line between interpretations
 
-            # Add separator between converters (except for last one)
-            if i < len(results_list) - 1:
-                lines.append(separator)
-
-        lines.append(bottom_border)
+        # Remove trailing empty line
+        if lines and lines[-1] == "":
+            lines.pop()
 
         return "\n".join(lines)
 
-    def _get_display_values(self, formats: Dict[str, Any]) -> List[str]:
-        """Get the most representative values to display for a converter."""
-        # This prioritizes the most useful formats for display
-        values = []
+    def _get_primary_display_value(self, formats: Dict[str, Any]) -> str:
+        """Get the most representative single value to display for a converter."""
+        # Priority order for different converter types - choose most readable format
 
-        # For number base converter, prioritize the core bases
-        if "Decimal" in formats and "Hexadecimal" in formats:
-            # This is likely a number converter - show core number formats first
-            priority_keys = ["Decimal", "Scientific", "Hexadecimal", "Binary", "Octal"]
-            for key in priority_keys:
-                if key in formats:
-                    formatted_value = str(formats[key])
-                    if len(formatted_value) > 38:  # Leave room for padding
-                        formatted_value = formatted_value[:35] + "..."
-                    values.append(formatted_value)
+        # For byte size converter, show both decimal and binary
+        if "Raw Bytes" in formats:  # This identifies byte size converter
+            if "Decimal" in formats and "Binary" in formats:
+                return f"{formats['Decimal']} / {formats['Binary']}"
+            elif "Decimal" in formats:
+                return str(formats["Decimal"])
+            elif "Binary" in formats:
+                return str(formats["Binary"])
 
-            # Add other formats if space allows
-            for key, value in formats.items():
-                if key not in priority_keys and len(values) < 5:  # Increased limit
-                    formatted_value = str(value)
-                    if len(formatted_value) > 38:
-                        formatted_value = formatted_value[:35] + "..."
-                    values.append(formatted_value)
-        else:
-            # For other converters, add all format values
-            for key, value in formats.items():
-                formatted_value = str(value)
-                if len(formatted_value) > 38:  # Leave room for padding
-                    formatted_value = formatted_value[:35] + "..."
-                values.append(formatted_value)
+        # For number converter, choose based on size and readability
+        if "Human Readable" in formats:
+            return str(formats["Human Readable"])
+        elif "Decimal" in formats and "Scientific" in formats:
+            decimal_val = str(formats["Decimal"])
+            return decimal_val
+        elif "Decimal" in formats:
+            return str(formats["Decimal"])
 
-        return values[:4]  # Increased from 3 to 4 lines per converter
+        # For timestamp converter, prioritize readable formats
+        if "Local Time" in formats:
+            return str(formats["Local Time"])
+        elif "UTC" in formats:
+            return str(formats["UTC"])
+        elif "Human Readable" in formats:
+            return str(formats["Human Readable"])
+
+        # For duration converter, prioritize human readable
+        if "Human Readable" in formats:
+            return str(formats["Human Readable"])
+
+        # Default: return first available value
+        if formats:
+            return str(next(iter(formats.values())))
+
+        return "Unknown"

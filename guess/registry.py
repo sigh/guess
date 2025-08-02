@@ -8,6 +8,8 @@ from guess.converters.number import NumberConverter
 from guess.converters.timestamp import TimestampConverter
 from guess.converters.duration import DurationConverter
 from guess.converters.bytesize import ByteSizeConverter
+from guess.converters.color import ColorConverter
+from guess.converters.permission import PermissionConverter
 
 
 # List of all available converter classes
@@ -16,6 +18,8 @@ CONVERTER_CLASSES = [
     TimestampConverter,
     DurationConverter,
     ByteSizeConverter,
+    ColorConverter,
+    PermissionConverter,
 ]
 
 
@@ -92,6 +96,8 @@ def get_converter_by_name(name: str) -> Optional[Converter]:
         - 'duration' -> DurationConverter
         - 'size', 'bytesize', 'bytes' -> ByteSizeConverter
         - 'number', 'num' -> NumberConverter
+        - 'color' -> ColorConverter
+        - 'permission' -> PermissionConverter
     """
     # Map command names to converter names
     name_mapping = {
@@ -103,6 +109,8 @@ def get_converter_by_name(name: str) -> Optional[Converter]:
         "bytes": "Byte Size",
         "number": "Number Base",
         "num": "Number Base",
+        "color": "Color",
+        "permission": "Permission",
     }
 
     # Get the actual converter name

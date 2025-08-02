@@ -59,28 +59,18 @@ class ByteSizeConverter(Converter):
             if total_bytes >= 1024:
                 binary_units.append(f"{total_bytes / 1024:.2f} KiB")
 
-            result = {
-                "Raw Bytes": f"{total_bytes:,}",
-                "Decimal (1000)": (
-                    " / ".join(decimal_units[:2])
-                    if decimal_units
-                    else f"{total_bytes} bytes"
-                ),
-                "Binary (1024)": (
-                    " / ".join(binary_units[:2])
-                    if binary_units
-                    else f"{total_bytes} bytes"
-                ),
-            }
+            result = {}
 
-            # Add more detailed breakdown if there are multiple units
-            if len(decimal_units) > 2 or len(binary_units) > 2:
-                result["Other Decimal"] = (
-                    " / ".join(decimal_units[2:]) if len(decimal_units) > 2 else ""
-                )
-                result["Other Binary"] = (
-                    " / ".join(binary_units[2:]) if len(binary_units) > 2 else ""
-                )
+            # Add raw byte count
+            result["Raw Bytes"] = f"{total_bytes:,}"
+
+            # Add decimal units if available
+            if decimal_units:
+                result["Decimal"] = decimal_units[0]
+
+            # Add binary units if available
+            if binary_units:
+                result["Binary"] = binary_units[0]
 
             return result
 

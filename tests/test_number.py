@@ -55,8 +55,6 @@ class TestNumberConverter:
             "Hexadecimal",
             "Binary",
             "Octal",
-            "RGB Context",
-            "File Permission",
         }
         assert set(result.keys()) == expected_keys
         assert result["Decimal"] == "255"
@@ -67,7 +65,7 @@ class TestNumberConverter:
     def test_convert_zero(self):
         """Test conversion of zero."""
         result = self.converter.convert("0")
-        expected_keys = {"Decimal", "Hexadecimal", "Binary", "Octal", "RGB Context"}
+        expected_keys = {"Decimal", "Hexadecimal", "Binary", "Octal"}
         assert set(result.keys()) == expected_keys
         assert result["Decimal"] == "0"
         assert result["Hexadecimal"] == "0x0"
@@ -77,7 +75,7 @@ class TestNumberConverter:
     def test_convert_with_whitespace(self):
         """Test conversion with whitespace."""
         result = self.converter.convert("  42  ")
-        expected_keys = {"Decimal", "Hexadecimal", "Binary", "Octal", "RGB Context"}
+        expected_keys = {"Decimal", "Hexadecimal", "Binary", "Octal"}
         assert set(result.keys()) == expected_keys
         assert result["Decimal"] == "42"
         assert result["Hexadecimal"] == "0x2a"
@@ -93,7 +91,14 @@ class TestNumberConverter:
     def test_convert_large_number(self):
         """Test conversion of large numbers with scientific notation."""
         result = self.converter.convert("1500000000")
-        expected_keys = {"Decimal", "Scientific", "Hexadecimal", "Binary", "Octal"}
+        expected_keys = {
+            "Decimal",
+            "Scientific",
+            "Hexadecimal",
+            "Binary",
+            "Octal",
+            "Human Readable",
+        }
         assert set(result.keys()) == expected_keys
         assert result["Decimal"] == "1,500,000,000"
         assert result["Scientific"] == "1.50e+09"

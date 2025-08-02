@@ -32,7 +32,7 @@ def main():
         guess --help                 # Show help
     """
     # Check if first argument is a known subcommand
-    subcommands = ["time", "duration", "size", "number"]
+    subcommands = ["time", "duration", "size", "number", "color", "permission"]
 
     if len(sys.argv) > 1 and sys.argv[1] in subcommands:
         # Use subcommand parser
@@ -69,6 +69,18 @@ def main():
         )
         number_parser.add_argument("value", help="Value to convert as number")
 
+        # Color subcommand
+        color_parser = subparsers.add_parser("color", help="Force color interpretation")
+        color_parser.add_argument("value", help="Value to convert as color")
+
+        # Permission subcommand
+        permission_parser = subparsers.add_parser(
+            "permission", help="Force file permission interpretation"
+        )
+        permission_parser.add_argument(
+            "value", help="Value to convert as file permission"
+        )
+
         args = parser.parse_args()
 
         # Handle explicit converter type
@@ -93,6 +105,8 @@ def main():
             "  guess 1234567890       # Show multiple interpretations\n"
             "  guess time 1722628800  # Force timestamp interpretation\n"
             "  guess number 255       # Force number interpretation\n"
+            "  guess color #FF0000    # Force color interpretation\n"
+            "  guess permission 755   # Force file permission interpretation\n"
             "  guess --help           # Show this help message",
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
@@ -101,7 +115,7 @@ def main():
             "value", nargs="?", help="Value to convert (auto-detect type)"
         )
 
-        parser.add_argument("--version", action="version", version="guess 1.0.0")
+        parser.add_argument("--version", action="version", version="guess 1.1.0")
 
         args = parser.parse_args()
 

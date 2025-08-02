@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "guess"
-version = "1.0.0"
-description = "Universal conversion utility for numbers, timestamps, durations, and byte sizes"
+version = "1.1.0"
+description = "Universal conversion utility for numbers, timestamps, durations, byte sizes, colors, and file permissions"
 authors = [{name = "sigh"}]
 readme = "README.md"
 license = {text = "MIT"}

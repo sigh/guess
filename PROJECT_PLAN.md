@@ -15,46 +15,46 @@ Development of a command-line utility called "guess" that performs intelligent c
 #### Tasks
 
 1. **Project Structure Setup**
-   - [ ] Create Python package structure:
-     - [ ] `guess/__init__.py`
-     - [ ] `guess/main.py` (CLI entry point)
-     - [ ] `guess/converters/` (converter modules)
-     - [ ] `guess/converters/__init__.py`
-     - [ ] `tests/` (test files)
-   - [ ] Set up virtual environment: `python -m venv venv`
-   - [ ] Create `pyproject.toml` with basic project metadata and CLI entry point
-   - [ ] Create `.gitignore` file for Python projects
-   - **Test**: `python -m guess --help` should work
+   - [x] Create Python package structure:
+     - [x] `guess/__init__.py`
+     - [x] `guess/main.py` (CLI entry point)
+     - [x] `guess/converters/` (converter modules)
+     - [x] `guess/converters/__init__.py`
+     - [x] `tests/` (test files)
+   - [x] Set up virtual environment: `python3 -m venv venv`
+   - [x] Create :`pyproject.toml` with basic project metadata and CLI entry point
+   - [x] Create `.gitignore` file for Python projects
+   - **Test**: `python3 -m guess --help` should work ✅
 
 2. **Minimal CLI with One Converter (Number Base)**
-   - [ ] Create `guess/converters/base.py` with simple `Converter` base class:
-     - [ ] `can_convert(input_str) -> bool` method
-     - [ ] `convert(input_str) -> dict` method
-     - [ ] `get_name() -> str` method
-   - [ ] Create `guess/converters/number.py` with `NumberConverter` class:
-     - [ ] Handle decimal input only initially
-     - [ ] Output decimal, hex, binary, octal
-     - [ ] Simple string-based output (no tables yet)
-   - [ ] Create `guess/main.py` with basic CLI:
-     - [ ] Parse command line arguments
-     - [ ] Try number converter on input
-     - [ ] Print results or "Unable to convert"
-   - **Test**: `python -m guess 255` should output number formats
+   - [x] Create `guess/converters/base.py` with simple `Converter` base class:
+     - [x] `can_convert(input_str) -> bool` method
+     - [x] `convert(input_str) -> dict` method
+     - [x] `get_name() -> str` method
+   - [x] Create `guess/converters/number.py` with `NumberConverter` class:
+     - [x] Handle decimal input only initially
+     - [x] Output decimal, hex, binary, octal
+     - [x] Simple string-based output (no tables yet)
+   - [x] Create `guess/main.py` with basic CLI:
+     - [x] Parse command line arguments
+     - [x] Try number converter on input
+     - [x] Print results or "Unable to convert"
+   - **Test**: `python3 -m guess 255` should output number formats ✅
 
 3. **Development Environment**
-   - [ ] Install development tools: `pip install black flake8 mypy pytest`
-   - [ ] Create `.flake8` configuration file
-   - [ ] Create `pyproject.toml` sections for black and mypy
-   - [ ] Write basic test for number converter in `tests/test_number.py`
-   - [ ] Write basic `README.md` with installation and usage
-   - **Test**: `pytest` should run and pass basic tests
+   - [x] Install development tools: `pip install black flake8 mypy pytest`
+   - [x] Create `.flake8` configuration file
+   - [x] Create `pyproject.toml` sections for black and mypy
+   - [x] Write basic test for number converter in `tests/test_number.py`
+   - [x] Write basic `README.md` with installation and usage
+   - **Test**: `pytest` should run and pass basic tests ✅
 
 **Deliverables**:
 
-- [ ] Working CLI that converts decimal numbers to other bases
-- [ ] Basic project structure with proper package setup
-- [ ] Development tooling configured and one passing test
-- [ ] Can run: `python -m guess 255` and get meaningful output
+- [x] Working CLI that converts decimal numbers to other bases
+- [x] Basic project structure with proper package setup
+- [x] Development tooling configured and one passing test
+- [x] Can run: `python3 -m guess 255` and get meaningful output ✅
 
 ---
 
@@ -67,50 +67,50 @@ Development of a command-line utility called "guess" that performs intelligent c
 #### Tasks
 
 1. **Simple Converter Registry**
-   - [ ] Create `guess/registry.py` with simple list of converter classes
-   - [ ] Update `guess/main.py` to try each converter in order
-   - [ ] Move number converter to use the same pattern
-   - **Test**: Existing number conversion should still work with new architecture
+   - [x] Create `guess/registry.py` with simple list of converter classes
+   - [x] Update `guess/main.py` to try each converter in order
+   - [x] Move number converter to use the same pattern
+   - **Test**: Existing number conversion should still work with new architecture ✅
 
 2. **Timestamp Converter** (Start Simple)
-   - [ ] Create `guess/converters/timestamp.py` with `TimestampConverter` class
-   - [ ] Implement basic Unix timestamp detection (10-digit numbers only)
-   - [ ] Output: UTC time, local time, human-readable format
-   - [ ] Add to converter list in registry
-   - **Test**: `python -m guess 1722628800` should show timestamp interpretation
-   - [ ] Add millisecond support (13-digit numbers)
-   - **Test**: `python -m guess 1722628800000` should work
+   - [x] Create `guess/converters/timestamp.py` with `TimestampConverter` class
+   - [x] Implement basic Unix timestamp detection (10-digit numbers only)
+   - [x] Output: UTC time, local time, human-readable format
+   - [x] Add to converter list in registry
+   - **Test**: `python3 -m guess 1722628800` should show timestamp interpretation ✅
+   - [x] Add millisecond support (13-digit numbers)
+   - **Test**: `python3 -m guess 1722628800000` should work ✅
    - [ ] Add more timestamp formats incrementally
    - **Test**: Each addition should work without breaking existing functionality
 
 3. **Duration Converter** (Start Simple)
-   - [ ] Create `guess/converters/duration.py` with `DurationConverter` class
-   - [ ] Start with small numbers detection (< 86400 seconds)
-   - [ ] Output: human readable (HH:MM:SS), seconds, minutes, hours
-   - [ ] Add to converter list in registry
-   - **Test**: `python -m guess 3661` should show duration interpretation
+   - [x] Create `guess/converters/duration.py` with `DurationConverter` class
+   - [x] Start with small numbers detection (< 86400 seconds)
+   - [x] Output: human readable (HH:MM:SS), seconds, minutes, hours
+   - [x] Add to converter list in registry
+   - **Test**: `python3 -m guess 3661` should show duration interpretation ✅
    - [ ] Add basic unit parsing (`1h`, `30m`, `2d`)
-   - **Test**: `python -m guess 1h` should work
+   - **Test**: `python3 -m guess 1h` should work
    - [ ] Add combined units incrementally (`1h30m`)
    - **Test**: Each addition should work reliably
 
 4. **Byte Size Converter** (Start Simple)
-   - [ ] Create `guess/converters/bytesize.py` with `ByteSizeConverter` class
-   - [ ] Start with large number detection (> 1024 bytes)
-   - [ ] Output: bytes, KB, MB, GB (decimal) and KiB, MiB, GiB (binary)
-   - [ ] Add to converter list in registry
-   - **Test**: `python -m guess 1048576` should show byte size interpretation
+   - [x] Create `guess/converters/bytesize.py` with `ByteSizeConverter` class
+   - [x] Start with large number detection (> 1024 bytes)
+   - [x] Output: bytes, KB, MB, GB (decimal) and KiB, MiB, GiB (binary)
+   - [x] Add to converter list in registry
+   - **Test**: `python3 -m guess 1048576` should show byte size interpretation ✅
    - [ ] Add unit parsing (`1GB`, `512MB`)
-   - **Test**: `python -m guess 1GB` should work
+   - **Test**: `python3 -m guess 1GB` should work
    - [ ] Add both decimal and binary unit support
    - **Test**: Each addition should work without conflicts
 
 **Deliverables**:
 
-- [ ] Four working converter modules integrated via simple registry
-- [ ] Each converter can be tested independently
-- [ ] Smart multi-interpretation works: `python -m guess 1722628800` shows multiple formats
-- [ ] Foundation ready for enhanced CLI commands in next phase
+- [x] Four working converter modules integrated via simple registry
+- [x] Each converter can be tested independently
+- [x] Smart multi-interpretation works: `python3 -m guess 1722628800` shows multiple formats ✅
+- [x] Foundation ready for enhanced CLI commands in next phase ✅
 
 ---
 
@@ -123,40 +123,40 @@ Development of a command-line utility called "guess" that performs intelligent c
 #### Tasks
 
 1. **Simple Table Output System**
-   - [ ] Create `guess/formatter.py` with `TableFormatter` class:
-     - [ ] `format_single_result(converter_name, formats_dict) -> str` method
-     - [ ] `format_multiple_results(results_list) -> str` method
-     - [ ] Start with simple ASCII tables (|, -, +)
-   - [ ] Update converters to return structured data instead of formatted strings
-   - [ ] Update main.py to use table formatter
-   - **Test**: All existing conversions should now have table output
+   - [x] Create `guess/formatter.py` with `TableFormatter` class:
+     - [x] `format_single_result(converter_name, formats_dict) -> str` method
+     - [x] `format_multiple_results(results_list) -> str` method
+     - [x] Start with simple ASCII tables (|, -, +)
+   - [x] Update converters to return structured data instead of formatted strings
+   - [x] Update main.py to use table formatter
+   - **Test**: All existing conversions should now have table output ✅
    - [ ] Add basic Unicode table characters for better appearance
    - [ ] Add column width handling for long values
    - **Test**: Tables should look clean and readable
 
 2. **Basic CLI Enhancements**
-   - [ ] Add explicit type commands to main.py:
-     - [ ] `guess time <value>` - force timestamp interpretation only
-     - [ ] `guess duration <value>` - force duration interpretation only
-     - [ ] `guess size <value>` - force byte size interpretation only
-     - [ ] `guess number <value>` - force number base interpretation only
-   - **Test**: Each explicit command should work correctly
-   - [ ] Add basic help system with `--help` flag and examples
-   - [ ] Add version information with `--version` flag
-   - **Test**: Help should show clear usage examples and work reliably
+   - [x] Add explicit type commands to main.py:
+     - [x] `guess time <value>` - force timestamp interpretation only
+     - [x] `guess duration <value>` - force duration interpretation only
+     - [x] `guess size <value>` - force byte size interpretation only
+     - [x] `guess number <value>` - force number base interpretation only
+   - **Test**: Each explicit command should work correctly ✅
+   - [x] Add basic help system with `--help` flag and examples
+   - [x] Add version information with `--version` flag
+   - **Test**: Help should show clear usage examples and work reliably ✅
 
 3. **Error Handling and Validation**
-   - [ ] Implement graceful error handling for invalid inputs
-   - [ ] Add helpful error messages with suggestions
-   - [ ] Add input validation with clear feedback
-   - **Test**: Try invalid inputs and verify helpful error messages
+   - [x] Implement graceful error handling for invalid inputs
+   - [x] Add helpful error messages with suggestions
+   - [x] Add input validation with clear feedback
+   - **Test**: Try invalid inputs and verify helpful error messages ✅
 
 **Deliverables**:
 
-- [ ] Beautiful table-formatted output for all conversions
-- [ ] Complete CLI with help system and explicit type commands
-- [ ] Robust error handling with helpful messages
-- [ ] All features work end-to-end
+- [x] Beautiful table-formatted output for all conversions
+- [x] Complete CLI with help system and explicit type commands
+- [x] Robust error handling with helpful messages
+- [x] All features work end-to-end ✅
 
 ---
 

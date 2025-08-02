@@ -37,11 +37,14 @@ guess <value> <unit>     # Unit implies interpretation
 
 **Examples**:
 
-- `guess 1722628800` → Multiple interpretations (timestamp, duration, byte size)
+- `guess 1722628800000` → Multiple interpretations (number, timestamp as seconds, timestamp as milliseconds, byte size)
 - `guess time 1722628800` → Multiple timestamp formats only
 - `guess 1722628800s` → Multiple timestamp formats only (unit implies type)
 - `guess 2GB` → Multiple byte size formats only (unit implies type)
-- `guess 0xFF` → Multiple number base formats only (prefix implies type)
+- `guess 0xFF` → Multiple number formats only (prefix implies type)
+- `guess 255` → Multiple interpretations (number, color value)
+- `guess #FF0000` → Color formats only (hex color implies type)
+- `guess 0755` → File permission formats only (octal with leading zero implies type)
 
 ## Functional Requirements
 
@@ -75,6 +78,7 @@ guess <value> <unit>     # Unit implies interpretation
 - **Input Formats**:
   - Raw bytes: `1048576`
   - With units: `1MB`, `2.5GB`, `512KB` (decimal), `1MiB`, `2.5GiB`, `512KiB` (binary)
+  - Flexible whitespace: `2 GB`, `2.5 GiB`, `512 MB` (spaces between number and unit)
   - Binary vs decimal (1024 vs 1000 based)
 - **Output Formats**:
   - Human readable with appropriate units
@@ -82,42 +86,65 @@ guess <value> <unit>     # Unit implies interpretation
   - Decimal (1000-based) with standard units: KB, MB, GB, TB
   - Binary (1024-based) with IEC units: KiB, MiB, GiB, TiB
 
-### 4. Number Base Conversion
+### 4. Number Conversion
 
 - **Input Formats**:
   - Decimal: `255`
   - Hexadecimal: `0xFF`, `FF`, `#FF`
   - Binary: `0b11111111`, `11111111b`
   - Octal: `0o377`, `377o`
+  - Scientific notation: `1.5e9`, `2.4E+6`, `1.23e-4`, `5E10` (robust parsing of all standard forms)
 - **Output Formats**:
   - All bases (decimal, hex, binary, octal) using least ambiguous notation
   - Decimal: standard and scientific notation for large numbers
+  - Human readable: "1.3 billion", "2.7 million" for numbers between 0.1 million and 1000 quadrillion
   - Hexadecimal: `0xFF` (not `FF` or `#FF`)
   - Binary: `0b11111111` (not unprefixed)
   - Octal: `0o377` (not unprefixed)
-  - Common programming contexts (RGB colors for 0-255, file permissions for 3-4 digit octals)
 
-### 5. Type-Specific Commands
+### 5. Color Conversion
+
+- **Input Formats**:
+  - RGB values: `255`, `0xFF`, `#FF0000`
+  - Color names: `red`, `blue`, `green`
+  - Hex color codes: `#FF0000`, `#00FF00`, `#0000FF`
+- **Output Formats**:
+  - Hex color code: `#FF0000`
+  - RGB values: `rgb(255, 0, 0)`
+  - Color name (when applicable): `red`
+  - HSL values: `hsl(0, 100%, 50%)`
+
+### 6. File Permission Conversion
+
+- **Input Formats**:
+  - Octal notation: `755`, `0755`, `0o755`
+  - Symbolic notation: `rwxr-xr-x`
+  - Decimal equivalent: `493`
+- **Output Formats**:
+  - Symbolic notation: `rwxr-xr-x`
+  - Octal notation: `0o755`
+  - Decimal equivalent: `493`
+  - Permission breakdown: `owner: rwx, group: r-x, others: r-x`
+
+### 7. Type-Specific Commands
 
 - `guess time <value>` - Force timestamp interpretation
 - `guess duration <value>` - Force duration interpretation
 - `guess size <value>` - Force byte size interpretation
-- `guess number <value>` - Force number base conversion
+- `guess number <value>` - Force number conversion
+- `guess color <value>` - Force color interpretation
+- `guess permission <value>` - Force file permission interpretation
 
-### 6. Confidence Scoring & Prioritization
-
-When showing multiple interpretations, display confidence scores to help users identify the most likely interpretation:
-
-- **High confidence** (90%+): Strong indicators (explicit units, known ranges)
-- **Medium confidence** (60-89%): Probable based on heuristics
-- **Low confidence** (30-59%): Possible but less likely
-
-### 7. Enhanced Input Validation
+### 8. Enhanced Input Validation
 
 - **Range validation**: Silently exclude interpretations outside reasonable ranges
 - **Timezone awareness**: Handle timestamps with timezone information
-- **Scientific notation**: Support values like `1.5e9` or `2.4E+6`
+- **Scientific notation**: Robust support for all standard forms including `1.5e9`, `2.4E+6`, `1.23e-4`, `5E10`
 - **Negative values**: Handle negative timestamps (pre-1970) and durations
+- **Flexible unit parsing**: Handle whitespace variations between numbers and units (`2GB`, `2 GB`, `2.5 GiB`)
+- **Color recognition**: Detect RGB values (0-255), hex color codes (#RRGGBB), and common color names
+- **Permission detection**: Recognize octal file permissions (755, 0644) and symbolic notation (rwxr-xr-x)
+- **Human readable numbers**: Convert large numbers to readable format (million, billion, trillion, quadrillion) for range 100,000 to 1,000,000,000,000,000 (0.1 million to 1000 quadrillion)
 
 ## Non-Functional Requirements
 
@@ -130,7 +157,7 @@ When showing multiple interpretations, display confidence scores to help users i
 ### Usability
 
 - Intuitive command-line interface
-- Clear and formatted output
+- Compact, clear output without complex table formatting
 - Helpful error messages with suggestions
 - Support for common unit abbreviations
 
@@ -147,6 +174,13 @@ When showing multiple interpretations, display confidence scores to help users i
 - Cross-platform support (macOS, Linux, Windows)
 - Minimal external dependencies
 - Simple source installation with pip
+
+### Output Formatting
+
+- **Compact display**: Use simple, readable formatting without complex Unicode tables
+- **Avoid table overhead**: Eliminate table formatting problems, column width issues, and text truncation
+- **Clear hierarchy**: Show results in a clean, hierarchical format that's easy to scan
+- **Consistent spacing**: Use consistent indentation and spacing for readability
 
 ## Command Line Interface
 
@@ -169,7 +203,9 @@ guess [options] <type> <value>
 - `time` - Force timestamp interpretation
 - `duration` - Force duration interpretation
 - `size` - Force byte size interpretation
-- `number` - Force number base conversion
+- `number` - Force number conversion
+- `color` - Force color interpretation
+- `permission` - Force file permission interpretation
 
 ## Input/Output Specifications
 
@@ -179,26 +215,19 @@ The program operates in two distinct modes based on input ambiguity:
 
 #### Mode 1: Multiple Interpretations (Ambiguous Input)
 
-When no explicit type is given and the input could reasonably be interpreted in multiple ways, show **one output for each plausible interpretation**.
+When no explicit type is given and the input could reasonably be interpreted in multiple ways, show **one output for each plausible interpretation** with the most readable format for each type.
 
-**Example**: `guess 1722628800`
+**Example**: `guess 1722628800000`
 
 ```text
-Input: 1722628800
+Number (from decimal):
+  1.72 trillion
 
-Interpretations:
-┌─────────────┬──────────────────────────────────────┐
-│ Type        │ Value                                │
-├─────────────┼──────────────────────────────────────┤
-│ Timestamp   │ 2024-08-02 16:00:00 UTC             │
-│             │ Friday, August 2, 2024 (1 year ago)  │
-├─────────────┼──────────────────────────────────────┤
-│ Duration    │ 19,934 days, 2 hours, 53 minutes    │
-│             │ 54.6 years                           │
-├─────────────┼──────────────────────────────────────┤
-│ Byte Size   │ 1.60 GB (1,722,628,800 bytes)       │
-│             │ 1.49 GiB (binary)                    │
-└─────────────┴──────────────────────────────────────┘
+Timestamp (from unix milliseconds):
+  2024-08-02 16:00:00 UTC
+
+Bytes (from byte count):
+  1.72 TB
 ```
 
 #### Mode 2: Multiple Formats (Unambiguous Input)
@@ -222,42 +251,25 @@ When the interpretation is clear (explicit type specified or units provided), sh
 **Example**: `guess time 1722628800` or `guess 1722628800s`
 
 ```text
-Input: 1722628800 (timestamp)
-
-Formats:
-┌─────────────────┬──────────────────────────────────────┐
-│ Format          │ Value                                │
-├─────────────────┼──────────────────────────────────────┤
-│ Local Time      │ 2024-08-02 09:00:00 PDT             │
-├─────────────────┼──────────────────────────────────────┤
-│ UTC Time        │ 2024-08-02 16:00:00 UTC             │
-├─────────────────┼──────────────────────────────────────┤
-│ Unix Timestamp  │ 1722628800 (seconds)                │
-│                 │ 1722628800000 (milliseconds)        │
-├─────────────────┼──────────────────────────────────────┤
-│ Relative        │ 1 year, 0 months ago                │
-├─────────────────┼──────────────────────────────────────┤
-│ ISO 8601        │ 2024-08-02T16:00:00.000Z            │
-└─────────────────┴──────────────────────────────────────┘
-```
-
-├─────────────────┼──────────────────────────────────────┤
-│ ISO 8601        │ 2024-08-02T16:00:00.000Z            │
-└─────────────────┴──────────────────────────────────────┘
-
+Timestamp (from unix timestamp):
+  2024-08-02 09:00:00 PDT
+  2024-08-02 16:00:00 UTC
+  1722628800 (unix seconds)
+  1722628800000 (unix milliseconds)
+  1 year, 0 months ago
+  2024-08-02T16:00:00.000Z
 ```
 
 ### Smart Detection Algorithm
 
-When no type is specified, `guess` should use heuristics to determine plausible interpretations:
+When no type is specified, `guess` should use heuristics to determine plausible interpretations. When a single type has multiple valid interpretations, show each separately:
 
 1. **Number range analysis**:
    - `1000000000` - `2000000000`: Likely Unix timestamp (seconds)
    - `1000000000000` - `2000000000000`: Likely Unix timestamp (milliseconds)
+   - Numbers that fall in both ranges: Show both timestamp interpretations separately
    - `1024`, `2048`, `4096`: Likely byte sizes (powers of 2)
    - Small numbers (`< 3600`): Likely duration in seconds
-   - `0-255`: Could be RGB color values or byte values
-   - `3-4 digits starting with 0-7`: Likely file permissions (e.g., `755`, `644`)
 
 2. **Format detection** (forces single interpretation):
    - Contains date separators (`-`, `/`): Timestamp only
@@ -265,10 +277,13 @@ When no type is specified, `guess` should use heuristics to determine plausible 
    - Contains size units (`B`, `KB`, `MB`, `GB`, `KiB`, `MiB`, `GiB`): Byte size only
    - Contains base prefixes (`0x`, `0b`, `0o`): Number base only
    - Scientific notation (`1.5e9`, `2E+6`): Treat as decimal number
+   - Hex color codes (`#FF0000`): Color only
+   - Symbolic permissions (`rwxr-xr-x`): File permission only
 
 3. **Context-aware detection**:
    - Leading zeros with 3-4 digits: File permissions (`755`, `0644`)
-   - Values 0-255: Include RGB color interpretation
+   - Values 0-255: Include RGB color value interpretation
+   - Color names (`red`, `blue`, `green`): Color interpretation
    - Values 1-65535: Include port number context
    - Reasonable timestamp ranges: Exclude obviously invalid dates
 
@@ -276,110 +291,71 @@ When no type is specified, `guess` should use heuristics to determine plausible 
    - `guess time <value>`: Timestamp formats only
    - `guess duration <value>`: Duration formats only
    - `guess size <value>`: Byte size formats only
-   - `guess number <value>`: Number base formats only
+   - `guess number <value>`: Number formats only
+   - `guess color <value>`: Color formats only
+   - `guess permission <value>`: File permission formats only
 
 ### Additional Examples
 
 #### Duration with explicit type: `guess duration 3661`
 
 ```text
-Input: 3661 (duration)
-
-Formats:
-┌─────────────────┬──────────────────────────────────────┐
-│ Format          │ Value                                │
-├─────────────────┼──────────────────────────────────────┤
-│ Human Readable  │ 1 hour, 1 minute, 1 second          │
-├─────────────────┼──────────────────────────────────────┤
-│ Compact         │ 1h1m1s                               │
-├─────────────────┼──────────────────────────────────────┤
-│ Seconds         │ 3661                                 │
-├─────────────────┼──────────────────────────────────────┤
-│ Minutes         │ 61.02                                │
-├─────────────────┼──────────────────────────────────────┤
-│ Hours           │ 1.02                                 │
-└─────────────────┴──────────────────────────────────────┘
+Duration (from seconds):
+  1 hour, 1 minute, 1 second
+  3661 seconds
+  1.02 hours
 ```
 
 #### Byte size with units: `guess 2.5GB`
 
 ```text
-Input: 2.5GB (byte size)
-
-Formats:
-┌─────────────────┬──────────────────────────────────────┐
-│ Format          │ Value                                │
-├─────────────────┼──────────────────────────────────────┤
-│ Decimal (1000)  │ 2.5 GB (2,500,000,000 bytes)        │
-├─────────────────┼──────────────────────────────────────┤
-│ Binary (1024)   │ 2.33 GiB (2,500,000,000 bytes)      │
-├─────────────────┼──────────────────────────────────────┤
-│ Raw Bytes       │ 2,500,000,000                       │
-├─────────────────┼──────────────────────────────────────┤
-│ Other Units     │ 2500 MB / 2328.31 MiB               │
-│                 │ 2,500,000 KB / 2,441,406.25 KiB     │
-└─────────────────┴──────────────────────────────────────┘
+Bytes (from unit):
+  2.5 GB
+  2.33 GiB
+  2500000000 bytes
+  2500 MB / 2328.31 MiB
+  2500000 KB / 2441406.25 KiB
 ```
 
 #### Number base with prefix: `guess 0xFF`
 
 ```text
-Input: 0xFF (number)
+Number (from hex):
+  255
+  0xFF
+  0b11111111
+  0o377
+```
 
-Formats:
-┌─────────────────┬──────────────────────────────────────┐
-│ Format          │ Value                                │
-├─────────────────┼──────────────────────────────────────┤
-│ Decimal         │ 255                                  │
-├─────────────────┼──────────────────────────────────────┤
-│ Hexadecimal     │ 0xFF                                 │
-├─────────────────┼──────────────────────────────────────┤
-│ Binary          │ 0b11111111                           │
-├─────────────────┼──────────────────────────────────────┤
-│ Octal           │ 0o377                                │
-├─────────────────┼──────────────────────────────────────┤
-│ Context         │ RGB Color: #FF0000 (red)             │
-│                 │ File permission: 255 (invalid)       │
-└─────────────────┴──────────────────────────────────────┘
+#### Color value: `guess color 255`
+
+```text
+Color (from rgb value):
+  #FF0000 (red)
+  rgb(255, 0, 0)
+  hsl(0, 100%, 50%)
+  red
+```
+
+#### File permissions: `guess permission 0755`
+
+```text
+Permission (from octal):
+  rwxr-xr-x
+  0755
+  owner: rwx, group: r-x, others: r-x
 ```
 
 #### Large number with scientific notation: `guess number 1500000000`
 
 ```text
-Input: 1500000000 (number)
-
-Formats:
-┌─────────────────┬──────────────────────────────────────┐
-│ Format          │ Value                                │
-├─────────────────┼──────────────────────────────────────┤
-│ Decimal         │ 1,500,000,000                       │
-├─────────────────┼──────────────────────────────────────┤
-│ Scientific      │ 1.5e+09                             │
-├─────────────────┼──────────────────────────────────────┤
-│ Hexadecimal     │ 0x59682F00                          │
-├─────────────────┼──────────────────────────────────────┤
-│ Binary          │ 0b1011001011010000010111100000000   │
-├─────────────────┼──────────────────────────────────────┤
-│ Octal           │ 0o13132027400                       │
-└─────────────────┴──────────────────────────────────────┘
-```
-
-#### Ambiguous input with confidence: `guess 755`
-
-```text
-Input: 755
-
-Interpretations (sorted by confidence):
-┌─────────────┬─────────────────────────────────────┬────────────┐
-│ Type        │ Value                               │ Confidence │
-├─────────────┼─────────────────────────────────────┼────────────┤
-│ Permission  │ rwxr-xr-x (owner: rwx, group: r-x, │ 95%        │
-│             │ other: r-x)                         │            │
-├─────────────┼─────────────────────────────────────┼────────────┤
-│ Number      │ Dec: 755, Hex: 0x2F3, Bin: 1011110011│ 70%        │
-├─────────────┼─────────────────────────────────────┼────────────┤
-│ Duration    │ 12 minutes, 35 seconds             │ 40%        │
-└─────────────┴─────────────────────────────────────┴────────────┘
+Number (from decimal):
+  1500000000
+  1.5 billion
+  1.5e+09
+  0x59682F00
+  0b1011001011010000010111100000000
+  0o13132027400
 ```
 
 ## Error Handling
@@ -401,6 +377,8 @@ Suggestions:
 - For durations: try "3600" or "1h30m"
 - For byte sizes: try "1048576" or "1GB"
 - For numbers: try "255" or "0xFF"
+- For colors: try "255" or "#FF0000" or "red"
+- For permissions: try "755" or "rwxr-xr-x"
 ```
 
 ### Ambiguous Input
@@ -408,33 +386,3 @@ Suggestions:
 - Show multiple interpretations when applicable
 - Silently exclude interpretations that don't make sense
 - Allow user to specify type explicitly for focused output
-
-**Example**:
-
-```text
-$ guess 999999999999999999
-Input: 999999999999999999
-
-Interpretations:
-┌─────────────┬──────────────────────────────────────┐
-│ Type        │ Value                                │
-├─────────────┼──────────────────────────────────────┤
-│ Number      │ Dec: 999999999999999999              │
-│             │ Hex: 0xDE0B6B3A763FFFF              │
-│             │ Bin: 110111100...                    │
-└─────────────┴──────────────────────────────────────┘
-```
-
-## Future Enhancements (Out of Scope for v1.0)
-
-- Configuration file for default behaviors
-- Custom output formats
-- Plugin system for additional conversions
-- Interactive mode
-- Batch processing of multiple values
-- Integration with clipboard
-- JSON/XML output for scripting
-- Currency conversion
-- Temperature conversion
-- Network address conversion (IP, CIDR)
-- Hash verification (MD5, SHA256)

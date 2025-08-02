@@ -289,127 +289,231 @@ Development of a command-line utility called "guess" that performs intelligent c
 
 ---
 
-## Technical Stack
+### Phase 6: Enhanced Features Implementation (3-4 days)
 
-### Core Dependencies
+**Goal**: Implement all the enhanced features specified in the updated requirements, including new converter types, improved formatting, and advanced parsing capabilities.
 
-- **Python 3.8+**: Core language
-- **argparse**: Built-in CLI argument parsing
-- **datetime**: Built-in date/time handling
-- **re**: Built-in regex for pattern matching
+**Based on Updated Requirements Analysis**: The requirements now include significant enhancements for color conversion, file permissions, improved output formatting, scientific notation parsing, flexible unit parsing, and human-readable number formats.
 
-### Development Dependencies
+#### Tasks
 
-- **pytest**: Testing framework
-- **black**: Code formatting
-- **flake8**: Linting
-- **mypy**: Type checking (optional)
+1. **Output Format Refactoring**
+   - [ ] **Remove Table Formatting Dependencies**:
+     - [ ] Update formatter.py to use simple hierarchical output
+     - [ ] Remove Unicode table characters and complex formatting
+     - [ ] Implement clean indentation-based display
+     - [ ] Ensure consistent spacing and readability
+     - [ ] **Write Test**: Create `test_output_formatting.py` to verify clean output without table characters
+     - [ ] **Test Manually**: All existing converters produce clean, readable output
 
-### Optional Enhancements (Post-MVP)
+   - [ ] **Mode-Based Output Implementation**:
+     - [ ] **Mode 1 (Ambiguous Input)**: Show one readable format per type
+       - [ ] Example: `guess 1722628800000` → Number: "1.72 trillion", Timestamp: "2024-08-02 16:00:00 UTC", Bytes: "1.72 TB"
+     - [ ] **Mode 2 (Specific Type)**: Show multiple formats of same type
+       - [ ] Example: `guess time 1722628800` → Multiple timestamp formats
+     - [ ] **Write Test**: Add tests to verify different output modes in main test file
+     - [ ] **Test Manually**: Compare output for `guess 255` vs `guess number 255`
 
-- **rich**: Enhanced terminal output (tables, colors)
-- **python-dateutil**: Advanced date parsing
-- **humanize**: Human-readable formatting
+2. **Enhanced Duration Converter**
+   - [ ] **Improved Output Format**:
+     - [ ] Remove fractional minutes/hours output (not useful)
+     - [ ] Keep only: human readable, compact format, canonical seconds
+     - [ ] Example output: "1 hour, 1 minute, 1 second", "1h1m1s", "3661 seconds"
+     - [ ] Remove redundant HH:MM:SS format
+     - [ ] **Update Tests**: Modify `test_duration.py` to verify new output formats
+     - [ ] **Test Manually**: `python3 -m guess duration 3661` should show clean, useful formats only
 
-## Risk Assessment
+3. **Enhanced Number Converter**
+   - [ ] **Scientific Notation Support**:
+     - [ ] Robust parsing for all standard forms: `1.5e9`, `2.4E+6`, `1.23e-4`, `5E10`
+     - [ ] Handle positive and negative exponents
+     - [ ] Auto-detect scientific notation input and treat as decimal number
+     - [ ] **Update Tests**: Add scientific notation test cases to `test_number.py`
+     - [ ] **Test Manually**: `python3 -m guess 1.5e9` should show as number
 
-### Medium Risk
+   - [ ] **Human Readable Numbers**:
+     - [ ] Convert large numbers to readable format: "1.3 billion", "2.7 million"
+     - [ ] Support range 100,000 to 1,000,000,000,000,000 (0.1 million to 1000 quadrillion)
+     - [ ] Include units: million, billion, trillion, quadrillion
+     - [ ] **Update Tests**: Add human readable number test cases to `test_number.py`
+     - [ ] **Test Manually**: `python3 -m guess 1500000000` should show "1.5 billion"
 
-- **Ambiguous input handling**: May require iterative refinement of detection logic
-- **Edge cases**: Handling negative numbers, very large numbers, malformed input
+   - [ ] **Remove Color/Permission Context**:
+     - [ ] Remove RGB color context from number converter (now separate type)
+     - [ ] Remove file permission context from number converter (now separate type)
+     - [ ] Focus purely on base conversions and scientific notation
+     - [ ] **Update Tests**: Ensure number converter tests no longer check color/permission
+     - [ ] **Test Manually**: `python3 -m guess 255` should show both number and color interpretations
 
-### Low Risk
+4. **Enhanced Byte Size Converter**
+   - [ ] **Flexible Unit Parsing**:
+     - [ ] Handle whitespace variations: `2GB`, `2 GB`, `2.5 GiB`
+     - [ ] Support spaces between numbers and units: `512 MB`
+     - [ ] Maintain existing decimal/binary unit support
+     - [ ] **Update Tests**: Add whitespace parsing test cases to `test_bytesize.py`
+     - [ ] **Test Manually**: `python3 -m guess "2 GB"` should work (with quotes for spaces)
+     - [ ] **Test Manually**: `python3 -m guess 2.5GiB` should work
 
-- **Basic conversions**: Core conversion logic is straightforward
-- **CLI interface**: Well-established patterns available
-- **Performance**: Simple operations should be fast enough
-- **Cross-platform compatibility**: Using only built-in Python modules
+5. **Enhanced Timestamp Converter**
+   - [ ] **Improved Format Selection**:
+     - [ ] Add context labels to timestamp outputs
+     - [ ] Include unix timestamp in both seconds and milliseconds
+     - [ ] Add relative time with context ("1 year ago")
+     - [ ] Add ISO 8601 format for standards compliance
+     - [ ] **Update Tests**: Add new format test cases to `test_timestamp.py`
+     - [ ] **Test Manually**: Timestamp outputs should be clear and comprehensive
 
-## Development Notes & Lessons Learned
+6. **New Converter Types**
+   - [ ] **Color Converter** (`guess/converters/color.py`):
+     - [ ] Create `ColorConverter` class inheriting from base converter
+     - [ ] Handle RGB input values (0-255): `255`, `0xFF`
+     - [ ] Handle hex color codes: `#FF0000`, `#00FF00`, `#0000FF`
+     - [ ] Handle color names: `red`, `blue`, `green`, `black`, `white`
+     - [ ] Output formats:
+       - [ ] Hex color code: `#FF0000`
+       - [ ] RGB values: `rgb(255, 0, 0)`
+       - [ ] Color name (when applicable): `red`
+       - [ ] HSL values: `hsl(0, 100%, 50%)`
+     - [ ] **Write Tests**: Create `tests/test_color.py` with RGB, hex, and color name tests
+     - [ ] **Test Manually**: `python3 -m guess color 255` should show color formats
+     - [ ] **Test Manually**: `python3 -m guess #FF0000` should auto-detect as color
 
-### Common Issues Encountered
+   - [ ] **File Permission Converter** (`guess/converters/permission.py`):
+     - [ ] Create `PermissionConverter` class inheriting from base converter
+     - [ ] Handle octal notation: `755`, `0755`, `0o755`
+     - [ ] Handle symbolic notation: `rwxr-xr-x`
+     - [ ] Handle decimal equivalent: `493`
+     - [ ] Output formats:
+       - [ ] Symbolic notation: `rwxr-xr-x`
+       - [ ] Octal notation: `0o755`
+       - [ ] Decimal equivalent: `493`
+       - [ ] Permission breakdown: `owner: rwx, group: r-x, others: r-x`
+     - [ ] **Write Tests**: Create `tests/test_permission.py` with octal and symbolic tests
+     - [ ] **Test Manually**: `python3 -m guess permission 0755` should show permission formats
+     - [ ] **Test Manually**: `python3 -m guess rwxr-xr-x` should auto-detect as permission
 
-1. **Python Environment Management**
-   - **Issue**: `externally-managed-environment` error when trying to install packages
-   - **Solution**: Always read error messages carefully - they provide the exact solution
-   - **Best Practice**: Use virtual environments (`python3 -m venv venv && source venv/bin/activate`)
-   - **Action**: Always activate the virtual environment before running tests or installing packages
+7. **Registry and Detection Updates**
+   - [ ] **Update Smart Detection Algorithm**:
+     - [ ] Add color detection for RGB values (0-255) and hex codes (#RRGGBB)
+     - [ ] Add permission detection for octal patterns (755, 0644) and symbolic (rwxr-xr-x)
+     - [ ] Remove color/permission detection from number converter
+     - [ ] Update registry.py to include new converter types
+     - [ ] **Update Tests**: Modify `test_detection.py` to test new converter detection
+     - [ ] **Test Manually**: `python3 -m guess 255` should show number AND color interpretations
+     - [ ] **Test Manually**: `python3 -m guess 0755` should auto-detect as permission
+     - [ ] **Test Manually**: `python3 -m guess #FF0000` should auto-detect as color
 
-2. **Test Failures and Debugging**
-   - **Issue**: Getting stuck on pytest installation instead of reading actual test failure messages
-   - **Solution**: Focus on the actual error messages from test failures, not environment issues
-   - **Best Practice**: When tests fail, read the assertion errors carefully to understand what's broken
-   - **Action**: Fix the test environment first, then focus on test content
+8. **Enhanced CLI Commands**
+   - [ ] **Add New Type Commands**:
+     - [ ] Add `guess color <value>` command to main.py
+     - [ ] Add `guess permission <value>` command to main.py
+     - [ ] Update help text to include new commands
+     - [ ] Update supported types in CLI documentation
+     - [ ] **Update Tests**: Add CLI tests for new commands to `test_main.py`
+     - [ ] **Test Manually**: `python3 -m guess --help` should show all 6 converter types
+     - [ ] **Test Manually**: Each new command should work correctly
 
-3. **Table Formatting Truncation**
-   - **Issue**: Multi-interpretation view cutting off important data (octal format missing)
-   - **Root Cause**: `_get_display_values()` limiting to 3 lines per converter
-   - **Solution**: Increase limit and prioritize core formats for specific converter types
-   - **Best Practice**: Test with actual expected output, don't assume formatter behavior
+9. **Final Integration and Validation**
+   - [ ] **Run Complete Test Suite**:
+     - [ ] Ensure all individual test files pass (test_color.py, test_permission.py, etc.)
+     - [ ] Update `tests/test_integration.py` for new converter types
+     - [ ] Verify test coverage remains >80% with new features
+     - [ ] **Test Manually**: Run `python -m pytest tests/` to verify all tests pass
 
-4. **Exit Code Handling**
-   - **Issue**: CLI returning exit code 0 for invalid input instead of 1
-   - **Root Cause**: Checking `if output:` instead of `if results:` in main.py
-   - **Solution**: Check the actual data (results list) not the formatted output string
-   - **Best Practice**: Separate data validation from presentation logic
+   - [ ] **Enhanced Error Handling**:
+     - [ ] Add color and permission suggestions to error messages
+     - [ ] Update help text examples to include new types
+     - [ ] Test invalid inputs for new converter types
+     - [ ] **Update Tests**: Add error handling tests to existing test files
+     - [ ] **Test Manually**: Error messages should be helpful for all converter types
 
-5. **Development Workflow Issues**
-   - **Issue**: Getting distracted by environment setup instead of focusing on actual bugs
-   - **Solution**: Set up environment once properly, then focus on code issues
-   - **Best Practice**: Read error messages completely before assuming the problem
+   - [ ] **Integration Testing**:
+     - [ ] Test all 6 converter types work independently
+     - [ ] Test ambiguous input shows multiple interpretations
+     - [ ] Test specific type commands work correctly
+     - [ ] **Test Manually**: Each converter type should function properly
 
-### Testing Strategy Improvements
+**Deliverables for Phase 6**:
 
-1. **Always test incrementally** - Don't write large test suites without running them
-2. **Use virtual environments consistently** - Avoids environment conflicts
-3. **Read error messages completely** - They often contain the exact solution
-4. **Test both positive and negative cases** - Don't just test happy path
-5. **Verify exit codes in CLI testing** - Important for proper CLI behavior
+- [ ] Two new converter types (color, permission) fully implemented with tests
+- [ ] Enhanced number converter with scientific notation and human readable formats (tested)
+- [ ] Improved output formatting without table dependencies (tested)
+- [ ] Enhanced byte size converter with flexible whitespace parsing (tested)
+- [ ] Mode-based output (simple format for ambiguous, detailed for specific types) (tested)
+- [ ] Updated CLI with all 6 converter type commands (tested)
+- [ ] Test suite coverage >80% maintained throughout development
+- [ ] All integration tests passing
 
-### Code Quality Reminders
+**Estimated Timeline**: 3-4 days for a junior developer, with testing integrated into each task
 
-1. **Separate concerns**: Data logic vs presentation logic
-2. **Test edge cases**: Empty input, invalid input, boundary conditions
-3. **Check return values**: Don't assume functions return what you expect
-4. **Prioritize important information**: In display logic, show most useful data first
+**Development Notes**:
 
-## Success Criteria
+- **Testing Strategy**: Each major component should be tested immediately after implementation
+- **Quality Gates**: No task is complete until both implementation and tests pass
+- **Manual Verification**: After automated tests, manually verify key examples work as expected
+- **Incremental Approach**: Build and test one converter at a time before moving to the next
 
-### Minimum Viable Product (MVP)
+---
 
-- [ ] Accept numeric input and provide multiple interpretations
-- [ ] Core four conversion types working (number, timestamp, duration, byte size)
-- [ ] Clean command-line interface with help
-- [ ] Basic error handling for invalid input
+### Phase 7: Documentation and Final Release (1 day)
 
-### Version 1.0
+**Goal**: Update all documentation to reflect the enhanced features and prepare for v1.1.0 release
 
-- [ ] Smart input detection with reasonable accuracy
-- [ ] Clean formatted output (simple tables)
-- [ ] Type-specific command options (`guess time 1234567890`)
-- [ ] Good response time for typical usage
-- [ ] Simple source installation process (`pip install -e .`)
+#### Tasks
 
-### Post-1.0 Enhancements
+1. **Update Core Documentation**
+   - [ ] **Update README.md**:
+     - [ ] Add examples for color and permission converters
+     - [ ] Update supported input formats table
+     - [ ] Add examples of new output formatting
+     - [ ] Update installation and usage sections
+     - [ ] **Verify Examples**: Test all README examples manually to ensure they work
 
-- [ ] Enhanced table formatting with rich library
-- [ ] Configuration file support
-- [ ] Additional conversion types (colors, permissions, etc.)
-- [ ] JSON output for scripting
-- [ ] Interactive mode
+   - [ ] **Update REQUIREMENTS.md**:
+     - [ ] Verify all requirements are implemented correctly
+     - [ ] Update examples to match actual output formatting
+     - [ ] Ensure consistency between requirements and implementation
+     - [ ] **Cross-check**: Implementation should match requirements exactly
 
-## Timeline Summary
+2. **Version and Release Preparation**
+   - [ ] **Update Version Information**:
+     - [ ] Update version in pyproject.toml to v1.1.0
+     - [ ] Update version strings in code if any
+     - [ ] Create comprehensive CHANGELOG.md documenting all v1.1.0 changes
+     - [ ] **Test Package**: Test package installation and CLI functionality in clean environment
+     - [ ] **Verify Version**: `python3 -m guess --version` should show v1.1.0
 
-- **Total Estimated Time**: 6-10 days
-- **MVP Delivery**: 4-6 days (Phases 1-3 complete)
-- **Production Ready**: 6-10 days (All phases complete)
+   - [ ] **Final Integration Testing**:
+     - [ ] Run full test suite and ensure >80% coverage maintained
+     - [ ] Test installation in fresh virtual environment
+     - [ ] Test all CLI commands and converter types
+     - [ ] Verify error handling and help text
+     - [ ] **Complete Regression Testing**: Verify all original functionality still works
+     - [ ] **New Feature Testing**: Verify all new features work as specified
 
-**Phase Breakdown**:
+3. **Release Artifacts**
+   - [ ] **Git and Release Management**:
+     - [ ] Commit all changes with clear commit messages
+     - [ ] Tag release with `git tag v1.1.0`
+     - [ ] Prepare GitHub release notes highlighting new features
+     - [ ] Update PROJECT_PLAN.md status to reflect completion
+     - [ ] **Final Verification**: Source package should install and work correctly from git
 
-- Phase 1: 1-2 days (Setup & Basic Number Converter)
-- Phase 2: 2-3 days (All Converters with Simple Registry)
-- Phase 3: 1-2 days (Enhanced Output & CLI)
-- Phase 4: 1-2 days (Testing & Documentation)
-- Phase 5: 0.5-1 days (Final Polish & Distribution)
+**Deliverables for Phase 7**:
 
-The project is designed for incremental development with each phase building upon the previous one. Each task is broken down for practical development with clear deliverables and checkboxes to track progress.
+- [ ] Updated documentation with all examples manually verified
+- [ ] Comprehensive changelog documenting enhancements
+- [ ] Tagged v1.1.0 release tested and ready for distribution
+- [ ] Complete regression testing passed with all new features verified
+- [ ] Project plan updated with final status
+
+**Final Success Criteria**:
+
+- All 6 converter types working (number, timestamp, duration, byte size, color, permission)
+- Enhanced features implemented and tested per requirements specification
+- Clean, readable output formatting without table dependencies
+- Comprehensive CLI with help system and error handling
+- >80% test coverage maintained with all tests passing
+- Complete documentation with verified working examples
+- Source-installable package ready for distribution
+- All manual tests pass in clean environment

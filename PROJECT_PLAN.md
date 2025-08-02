@@ -4,6 +4,30 @@
 
 Development of a command-line utility called "guess" that performs intelligent conversions between different data formats commonly used in programming and software management.
 
+## Current Status (August 2, 2025)
+
+**Phase 4 - In Progress**: Core functionality complete, working on testing and polish.
+
+**✅ Completed Features:**
+- All 4 converter types working (number, timestamp, duration, byte size)
+- Enhanced number converter with hex/binary/octal input, RGB colors, file permissions
+- Enhanced timestamp converter with negative timestamps and relative time
+- Unit parsing for duration (`1h30m`) and byte size (`2.5GB`, `1GiB`)
+- Beautiful table formatting for both single and multi-interpretation modes
+- Complete CLI with explicit type commands and help system
+- Integration tests covering main workflows
+
+**🚧 Current Focus:**
+- Code quality improvements (formatting, linting, type hints)
+- Performance testing
+- Comprehensive documentation
+
+**📝 Key Lessons Learned:**
+- Always use virtual environments to avoid `externally-managed-environment` errors
+- Read error messages completely - they contain the solution
+- Test incrementally and fix environment issues first
+- Separate data validation from presentation logic
+
 ## Development Phases
 
 ### Phase 1: Project Setup and Minimal Working Version (1-2 days)
@@ -169,11 +193,15 @@ Development of a command-line utility called "guess" that performs intelligent c
 #### Tasks
 
 1. **Comprehensive Testing**
-   - [ ] Write integration tests in `tests/test_integration.py`:
-     - [ ] Test full CLI workflows for each input type
-     - [ ] Test error handling scenarios with invalid inputs
-     - [ ] Test edge cases (empty input, very large numbers, negative values)
-   - **Test**: Run full integration test suite and verify all pass
+   - [x] Write integration tests in `tests/test_integration.py`:
+     - [x] Test full CLI workflows for each input type
+     - [x] Test error handling scenarios with invalid inputs
+     - [x] Test edge cases (empty input, very large numbers, negative values)
+   - **Test**: Run full integration test suite and verify all pass ✅
+   - **NOTES**: 
+     - Fixed table formatting truncation issue (octal format missing)
+     - Fixed exit code handling for invalid input
+     - Set up proper virtual environment for testing
    - [ ] Basic performance testing:
      - [ ] Measure response times for various inputs
      - [ ] Ensure reasonable response time (< 200ms for simple cases)
@@ -197,22 +225,31 @@ Development of a command-line utility called "guess" that performs intelligent c
    - **Test**: Documentation should be clear and examples should work as written
 
 3. **Core Features and Edge Cases**
-   - [ ] Enhanced number converter features:
-     - [ ] Scientific notation for large numbers (>= 1,000,000)
-     - [ ] Handle negative numbers appropriately
-     - [ ] Basic RGB color representation for 0-255 values
-   - **Test**: Each feature should work with appropriate inputs
-   - [ ] Enhanced timestamp converter features:
-     - [ ] Handle negative timestamps (pre-1970)
-     - [ ] Add basic relative time calculations
-     - [ ] Improve date format detection
-   - **Test**: Each enhancement should be verifiable and not break existing functionality
+   - [x] Enhanced number converter features:
+     - [x] Scientific notation for large numbers (>= 1,000,000) ✅
+     - [x] Handle negative numbers appropriately ✅
+     - [x] Basic RGB color representation for 0-255 values ✅
+     - [x] File permission interpretation for 3-digit octal numbers ✅
+     - [x] Support for hex/binary/octal input formats ✅
+   - **Test**: Each feature should work with appropriate inputs ✅
+   - [x] Enhanced timestamp converter features:
+     - [x] Handle negative timestamps (pre-1970) ✅
+     - [x] Add basic relative time calculations ✅
+     - [x] Improve date format detection ✅
+   - **Test**: Each enhancement should be verifiable and not break existing functionality ✅
+   - [x] Enhanced duration converter features:
+     - [x] Unit parsing (`1h`, `30m`, `2d`, `1h30m`) ✅
+   - [x] Enhanced byte size converter features:
+     - [x] Unit parsing (`1GB`, `2.5GiB`, `512MB`) ✅
+     - [x] Both decimal and binary unit support ✅
 
 **Deliverables**:
 
+- [x] Core features working and tested ✅
+- [x] Enhanced converters with advanced features ✅
+- [x] Integration tests covering main workflows ✅
 - [ ] Production-ready codebase with >80% test coverage
 - [ ] Complete documentation with examples
-- [ ] Core features working and tested
 - [ ] Reasonable performance for CLI tool usage
 
 ---
@@ -286,6 +323,54 @@ Development of a command-line utility called "guess" that performs intelligent c
 - **CLI interface**: Well-established patterns available
 - **Performance**: Simple operations should be fast enough
 - **Cross-platform compatibility**: Using only built-in Python modules
+
+## Development Notes & Lessons Learned
+
+### Common Issues Encountered
+
+1. **Python Environment Management**
+   - **Issue**: `externally-managed-environment` error when trying to install packages
+   - **Solution**: Always read error messages carefully - they provide the exact solution
+   - **Best Practice**: Use virtual environments (`python3 -m venv venv && source venv/bin/activate`)
+   - **Action**: Always activate the virtual environment before running tests or installing packages
+
+2. **Test Failures and Debugging**
+   - **Issue**: Getting stuck on pytest installation instead of reading actual test failure messages
+   - **Solution**: Focus on the actual error messages from test failures, not environment issues
+   - **Best Practice**: When tests fail, read the assertion errors carefully to understand what's broken
+   - **Action**: Fix the test environment first, then focus on test content
+
+3. **Table Formatting Truncation**
+   - **Issue**: Multi-interpretation view cutting off important data (octal format missing)
+   - **Root Cause**: `_get_display_values()` limiting to 3 lines per converter
+   - **Solution**: Increase limit and prioritize core formats for specific converter types
+   - **Best Practice**: Test with actual expected output, don't assume formatter behavior
+
+4. **Exit Code Handling**
+   - **Issue**: CLI returning exit code 0 for invalid input instead of 1
+   - **Root Cause**: Checking `if output:` instead of `if results:` in main.py
+   - **Solution**: Check the actual data (results list) not the formatted output string
+   - **Best Practice**: Separate data validation from presentation logic
+
+5. **Development Workflow Issues**
+   - **Issue**: Getting distracted by environment setup instead of focusing on actual bugs
+   - **Solution**: Set up environment once properly, then focus on code issues
+   - **Best Practice**: Read error messages completely before assuming the problem
+
+### Testing Strategy Improvements
+
+1. **Always test incrementally** - Don't write large test suites without running them
+2. **Use virtual environments consistently** - Avoids environment conflicts
+3. **Read error messages completely** - They often contain the exact solution
+4. **Test both positive and negative cases** - Don't just test happy path
+5. **Verify exit codes in CLI testing** - Important for proper CLI behavior
+
+### Code Quality Reminders
+
+1. **Separate concerns**: Data logic vs presentation logic
+2. **Test edge cases**: Empty input, invalid input, boundary conditions
+3. **Check return values**: Don't assume functions return what you expect
+4. **Prioritize important information**: In display logic, show most useful data first
 
 ## Success Criteria
 

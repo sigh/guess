@@ -1,36 +1,25 @@
 """
 Color converter for RGB values, hex codes, and color names.
+
+This module implements color conversion algorithms based on established standards:
+- CSS Color Module Level 3: https://www.w3.org/TR/css-color-3/
+- sRGB Color Space: IEC 61966-2-1:1999
+- CIE Colorimetry Standards: CIE 15:2004
+- ANSI Escape Codes: ECMA-48 Standard
 """
 
 import re
 from typing import Dict, Any, List
 from guess.converters.base import Converter, Interpretation
+from guess.css_colors import CSS_COLORS
 
 
 class ColorConverter(Converter):
     """Converts colors between different formats."""
 
     def __init__(self):
-        # Basic color name mappings
-        self.color_names = {
-            "red": (255, 0, 0),
-            "green": (0, 255, 0),
-            "blue": (0, 0, 255),
-            "black": (0, 0, 0),
-            "white": (255, 255, 255),
-            "yellow": (255, 255, 0),
-            "cyan": (0, 255, 255),
-            "magenta": (255, 0, 255),
-            "orange": (255, 165, 0),
-            "purple": (128, 0, 128),
-            "pink": (255, 192, 203),
-            "brown": (165, 42, 42),
-            "gray": (128, 128, 128),
-            "grey": (128, 128, 128),
-        }
-
-        # Reverse mapping for RGB to name
-        self.rgb_to_name = {v: k for k, v in self.color_names.items() if k != "grey"}
+        # Use CSS color names from W3C CSS Color Module Level 3 specification
+        self.color_names = CSS_COLORS
 
     def get_interpretations(self, input_str: str) -> List[Interpretation]:
         """Get all possible interpretations of the input as a color."""
@@ -61,10 +50,10 @@ class ColorConverter(Converter):
             except ValueError:
                 pass
 
-        # Check for color names
-        elif cleaned.lower() in self.color_names:
-            rgb = self.color_names[cleaned.lower()]
-            interpretations.append(Interpretation(description="name", value=rgb))
+        # Check for color names (normalize by removing spaces and converting to lowercase)
+        elif self._normalize_color_name(cleaned) in self.color_names:
+            rgb = self.color_names[self._normalize_color_name(cleaned)]
+            interpretations.append(Interpretation(description="css name", value=rgb))
 
         # Check for rgb() format with integers [0-255]
         elif re.match(r"^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$", cleaned):
@@ -131,6 +120,126 @@ class ColorConverter(Converter):
 
         return interpretations
 
+    def _normalize_color_name(self, name: str) -> str:
+        """Normalize color name by removing spaces and converting to lowercase."""
+        return name.replace(" ", "").lower()
+
+    def _find_color_name(self, r: float, g: float, b: float) -> str:
+        """Find color name for RGB values, preferring certain names over others."""
+        rounded_rgb = (round(r), round(g), round(b))
+        for name, rgb in self.color_names.items():
+            if rgb == rounded_rgb and not name.endswith("grey") and name != "aqua":
+                return name
+        return None
+
+    def _rgb_to_xyz(self, r: int, g: int, b: int) -> tuple:
+        """Convert RGB to XYZ color space (intermediate step for CIELAB).
+
+        References:
+        - http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html
+        - https://en.wikipedia.org/wiki/SRGB#From_sRGB_to_CIE_XYZ
+        - IEC 61966-2-1:1999 standard (sRGB color space)
+        """
+        r_norm = r / 255.0
+        g_norm = g / 255.0
+        b_norm = b / 255.0
+
+        # Apply gamma correction (sRGB gamma function)
+        # Reference: https://en.wikipedia.org/wiki/SRGB#From_sRGB_to_CIE_XYZ
+        r_norm = ((r_norm + 0.055) / 1.055) ** 2.4 if r_norm > 0.04045 else r_norm / 12.92
+        g_norm = ((g_norm + 0.055) / 1.055) ** 2.4 if g_norm > 0.04045 else g_norm / 12.92
+        b_norm = ((b_norm + 0.055) / 1.055) ** 2.4 if b_norm > 0.04045 else b_norm / 12.92
+
+        r_norm *= 100
+        g_norm *= 100
+        b_norm *= 100
+
+        # Convert to XYZ using D65 observer at 2° (sRGB transformation matrix)
+        # Reference: http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
+        x = r_norm * 0.4124564 + g_norm * 0.3575761 + b_norm * 0.1804375
+        y = r_norm * 0.2126729 + g_norm * 0.7151522 + b_norm * 0.0721750
+        z = r_norm * 0.0193339 + g_norm * 0.1191920 + b_norm * 0.9503041
+
+        return (x, y, z)
+
+    def _xyz_to_lab(self, x: float, y: float, z: float) -> tuple:
+        """Convert XYZ to CIELAB color space.
+
+        References:
+        - http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Lab.html
+        - https://en.wikipedia.org/wiki/CIELAB_color_space#From_CIEXYZ_to_CIELAB
+        - CIE 15:2004 Colorimetry standard
+        """
+        # D65 reference white (CIE standard illuminant)
+        # Reference: https://en.wikipedia.org/wiki/Illuminant_D65
+        ref_x = 95.047
+        ref_y = 100.000
+        ref_z = 108.883
+
+        x_norm = x / ref_x
+        y_norm = y / ref_y
+        z_norm = z / ref_z
+
+        # CIE LAB conversion threshold and formula
+        # Reference: http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Lab.html
+        threshold = 0.008856
+        x_norm = x_norm ** (1/3) if x_norm > threshold else (7.787 * x_norm) + 16/116
+        y_norm = y_norm ** (1/3) if y_norm > threshold else (7.787 * y_norm) + 16/116
+        z_norm = z_norm ** (1/3) if z_norm > threshold else (7.787 * z_norm) + 16/116
+
+        L = (116 * y_norm) - 16
+        a = 500 * (x_norm - y_norm)
+        b = 200 * (y_norm - z_norm)
+
+        return (L, a, b)
+
+    def _rgb_to_lab(self, r: int, g: int, b: int) -> tuple:
+        """Convert RGB to CIELAB color space."""
+        xyz = self._rgb_to_xyz(r, g, b)
+        return self._xyz_to_lab(*xyz)
+
+    def _color_distance2(self, lab1: tuple, lab2: tuple) -> float:
+        """Calculate perceptual distance between two LAB colors using Delta E* (1976).
+        References:
+
+        - https://en.wikipedia.org/wiki/Color_difference#CIE76
+        - http://www.brucelindbloom.com/index.html?Eqn_DeltaE_CIE76.html
+        """
+        delta_L = lab1[0] - lab2[0]
+        delta_a = lab1[1] - lab2[1]
+        delta_b = lab1[2] - lab2[2]
+
+        # Return squared distance (no need for sqrt when just comparing magnitudes)
+        return delta_L ** 2 + delta_a ** 2 + delta_b ** 2
+
+    def _find_closest_color(self, r: float, g: float, b: float) -> str:
+        """Find the closest CSS color name using perceptual distance in CIELAB color space.
+
+        References:
+        - https://en.wikipedia.org/wiki/Color_difference
+        - http://www.brucelindbloom.com/index.html?ColorDifferenceCalc.html
+        """
+        # Convert target color to LAB space once
+        target_lab = self._rgb_to_lab(round(r), round(g), round(b))
+
+        min_distance = float('inf')
+        closest_color = None
+
+        for name, rgb in self.color_names.items():
+            # Skip colors we don't want to suggest
+            if name.endswith("grey") or name == "aqua":
+                continue
+
+            # Convert color to LAB space
+            color_lab = self._rgb_to_lab(*rgb)
+
+            distance = self._color_distance2(target_lab, color_lab)
+            if distance < min_distance:
+                min_distance = distance
+                closest_color = name
+
+        return closest_color
+
     def convert_value(self, value: Any) -> Dict[str, str]:
         """Convert a color value to various formats."""
         # Handle both integer and float RGB values
@@ -142,11 +251,9 @@ class ColorConverter(Converter):
         # Generate output formats
         result = {}
 
-        # Hex color code - round for display
-        result["Hex"] = f"#{round(r):02x}{round(g):02x}{round(b):02x}"
-
-        # RGB values - round for display
-        result["RGB"] = f"rgb({round(r)}, {round(g)}, {round(b)})"
+        # RGB values - round for display with color square
+        color_square = self._get_color_square(r, g, b)
+        result["RGB"] = f"{color_square} rgb({round(r)}, {round(g)}, {round(b)})"
 
         # RGB percent values (0-100% range)
         result["RGB Percent"] = (
@@ -157,18 +264,28 @@ class ColorConverter(Converter):
         h, s, L = self._rgb_to_hsl(r, g, b)
         result["HSL"] = f"hsl({round(h)}, {round(s)}%, {round(L)}%)"
 
-        # Colored square using xterm-256 colors
-        result["Color Square"] = self._get_color_square(r, g, b)
+        # Hex color code - round for display
+        result["Hex"] = f"#{round(r):02x}{round(g):02x}{round(b):02x}"
 
-        # Color name (if applicable) - only check rounded values
-        rounded_rgb = (round(r), round(g), round(b))
-        if rounded_rgb in self.rgb_to_name:
-            result["Name"] = self.rgb_to_name[rounded_rgb]
+        # Color name (if applicable)
+        color_name = self._find_color_name(r, g, b)
+        if color_name:
+            result["Name"] = f"{color_name} (css color)"
+        else:
+            # If no exact match, find the closest color
+            closest_color = self._find_closest_color(r, g, b)
+            if closest_color:
+                result["Closest Color"] = f"{closest_color} (approximate css color)"
 
         return result
 
     def _rgb_to_hsl(self, r, g, b):
-        """Convert RGB to HSL, preserving precision."""
+        """Convert RGB to HSL, preserving precision.
+
+        References:
+        - https://en.wikipedia.org/wiki/HSL_and_HSV#From_RGB
+        - https://www.w3.org/TR/css-color-3/#hsl-color
+        """
         r, g, b = r / 255.0, g / 255.0, b / 255.0
 
         max_val = max(r, g, b)
@@ -201,7 +318,12 @@ class ColorConverter(Converter):
         return (h * 360, s * 100, L * 100)
 
     def _hsl_to_rgb(self, h: int, s: int, lightness: int):
-        """Convert HSL to RGB."""
+        """Convert HSL to RGB.
+
+        References:
+        - https://en.wikipedia.org/wiki/HSL_and_HSV#HSL_to_RGB
+        - https://www.w3.org/TR/css-color-3/#hsl-color
+        """
         h = h / 360.0
         s = s / 100.0
         lightness = lightness / 100.0
@@ -237,34 +359,21 @@ class ColorConverter(Converter):
         return (r * 255, g * 255, b * 255)
 
     def _get_color_square(self, r, g, b):
-        """Generate a colored square using xterm-256 colors."""
-        # Round to integers for xterm color calculation
-        r_int = round(r)
-        g_int = round(g)
-        b_int = round(b)
+        """Generate a colored square using truecolor (24-bit) ANSI escape sequences.
 
-        # Convert RGB to xterm-256 color index
-        # xterm-256 uses a 6x6x6 color cube for colors 16-231
-        # Each component (R, G, B) is mapped to 0-5 range
-        def rgb_to_xterm_component(val):
-            if val < 48:
-                return 0
-            elif val < 115:
-                return 1
-            else:
-                return min(5, (val - 35) // 40)
+        References:
+        - https://en.wikipedia.org/wiki/ANSI_escape_code#24-bit
+        - https://github.com/termstandard/colors
+        """
+        # Round to integers for RGB values
+        r_int = max(0, min(255, round(r)))
+        g_int = max(0, min(255, round(g)))
+        b_int = max(0, min(255, round(b)))
 
-        r_xterm = rgb_to_xterm_component(r_int)
-        g_xterm = rgb_to_xterm_component(g_int)
-        b_xterm = rgb_to_xterm_component(b_int)
-
-        # Calculate xterm-256 color index
-        color_index = 16 + (36 * r_xterm) + (6 * g_xterm) + b_xterm
-
-        # Create colored square using ANSI escape sequences
-        # Use both foreground and background to create a solid square
+        # Create colored square using truecolor ANSI escape sequences
+        # Format: \033[48;2;r;g;bm for background color
         reset = "\033[0m"
-        bg_color = f"\033[48;5;{color_index}m"
+        bg_color = f"\033[48;2;{r_int};{g_int};{b_int}m"
         return f"{bg_color}  {reset}"
 
     def get_name(self) -> str:
@@ -275,8 +384,4 @@ class ColorConverter(Converter):
         self, formats: Dict[str, str], interpretation_description: str
     ) -> str:
         """Choose the most readable display value for color formats."""
-        # Return color square + RGB for visual and textual representation
-        if "Color Square" in formats and "RGB" in formats:
-            return f"{formats['Color Square']} {formats['RGB']}"
-        # Should always have both Color Square and RGB, so return None if not
-        return None
+        return formats.get("RGB")

@@ -9,15 +9,7 @@ class TestColorConverter:
     """Test the color converter functionality."""
 
     def setup_method(self):
-        """Se        # Test without Color Square format (should return None)
-        formats_no_square = {
-            "RGB": "rgb(255, 0, 0)",
-            "Hex": "#FF0000",
-            "HSL": "hsl(0, 100%, 50%)",
-            "Name": "red",
-        }
-        display_value = self.converter.choose_display_value(formats_no_square, "name")
-        assert display_value is None fixtures."""
+        """Set up test fixtures."""
         self.converter = ColorConverter()
 
     def test_get_interpretations_hex_color_codes(self):
@@ -50,13 +42,19 @@ class TestColorConverter:
         """Test that color names are properly interpreted."""
         interpretations = self.converter.get_interpretations("red")
         assert len(interpretations) == 1
-        assert interpretations[0].description == "name"
+        assert interpretations[0].description == "css name"
         assert interpretations[0].value == (255, 0, 0)
 
         interpretations = self.converter.get_interpretations("white")
         assert len(interpretations) == 1
-        assert interpretations[0].description == "name"
+        assert interpretations[0].description == "css name"
         assert interpretations[0].value == (255, 255, 255)
+
+        # Test color names with spaces
+        interpretations = self.converter.get_interpretations("deep pink")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "css name"
+        assert interpretations[0].value == (255, 20, 147)  # deeppink RGB values
 
     def test_get_interpretations_rgb_formats(self):
         """Test that rgb() formats are properly interpreted."""
@@ -149,22 +147,21 @@ class TestColorConverter:
         assert "RGB" in result
         assert "RGB Percent" in result
         assert "HSL" in result
-        assert "Color Square" in result
 
         # Check format correctness
         assert result["Hex"] == "#ff0000"
-        assert result["RGB"] == "rgb(255, 0, 0)"
+        # RGB now includes color square
+        assert "rgb(255, 0, 0)" in result["RGB"]
+        assert "\033[" in result["RGB"]  # Should contain ANSI escape sequences
+        assert "\033[0m" in result["RGB"]  # Should contain reset escape
         assert result["RGB Percent"] == "rgb(100%, 0%, 0%)"
         assert result["HSL"] == "hsl(0, 100%, 50%)"
-        # Color square should contain ANSI escape sequences
-        assert "\033[" in result["Color Square"]
-        assert "\033[0m" in result["Color Square"]
 
     def test_convert_value_with_color_name(self):
         """Test that known colors include their name."""
         result = self.converter.convert_value((255, 0, 0))
         assert "Name" in result
-        assert result["Name"] == "red"
+        assert result["Name"] == "red (css color)"
 
     def test_convert_value_without_color_name(self):
         """Test that unknown colors don't include a name."""
@@ -199,17 +196,18 @@ class TestColorConverter:
         assert result["RGB Percent"] == "rgb(1%, 0%, 0%)"
 
     def test_convert_value_color_square(self):
-        """Test color square generation."""
+        """Test color square generation (now integrated into RGB format)."""
         # Test basic colors
         result = self.converter.convert_value((255, 0, 0))
-        square = result["Color Square"]
-        assert "\033[48;5;" in square  # Should contain background color escape
-        assert "\033[0m" in square  # Should contain reset escape
+        rgb_value = result["RGB"]
+        assert "\033[48;2;" in rgb_value  # Should contain truecolor background escape
+        assert "\033[0m" in rgb_value  # Should contain reset escape
+        assert "rgb(255, 0, 0)" in rgb_value  # Should contain RGB text
 
-        # Test that different colors produce different squares
+        # Test that different colors produce different RGB values (with different squares)
         result1 = self.converter.convert_value((255, 0, 0))
         result2 = self.converter.convert_value((0, 255, 0))
-        assert result1["Color Square"] != result2["Color Square"]
+        assert result1["RGB"] != result2["RGB"]
 
     def test_get_name(self):
         """Test converter name."""
@@ -217,23 +215,35 @@ class TestColorConverter:
 
     def test_choose_display_value(self):
         """Test display value selection."""
-        # Test with Color Square and RGB formats present
-        formats_with_square = {
-            "RGB": "rgb(255, 0, 0)",
+        # Test with RGB format present (now includes color square)
+        formats_with_rgb = {
+            "RGB": "\033[48;2;255;0;0m  \033[0m rgb(255, 0, 0)",
             "Hex": "#FF0000",
             "HSL": "hsl(0, 100%, 50%)",
-            "Color Square": "\033[48;5;196m  \033[0m",
-            "Name": "red",
+            "Name": "red (css color)",
         }
-        display_value = self.converter.choose_display_value(formats_with_square, "name")
-        assert display_value == "\033[48;5;196m  \033[0m rgb(255, 0, 0)"
+        display_value = self.converter.choose_display_value(formats_with_rgb, "css name")
+        assert display_value == "\033[48;2;255;0;0m  \033[0m rgb(255, 0, 0)"
 
-        # Test without Color Square format (should return None)
-        formats_no_square = {
-            "RGB": "rgb(255, 0, 0)",
+        # Test without RGB format (should return None)
+        formats_no_rgb = {
             "Hex": "#FF0000",
             "HSL": "hsl(0, 100%, 50%)",
-            "Name": "red",
+            "Name": "red (css color)",
         }
-        display_value = self.converter.choose_display_value(formats_no_square, "name")
+        display_value = self.converter.choose_display_value(formats_no_rgb, "css name")
         assert display_value is None
+
+    def test_convert_value_closest_color(self):
+        """Test closest color matching for non-exact colors."""
+        # Test a color that doesn't have an exact match
+        result = self.converter.convert_value((255, 64, 64))  # Reddish but not exact
+
+        # Should not have exact "Name" but should have "Closest Color"
+        assert "Name" not in result
+        assert "Closest Color" in result
+        assert "(approximate css color)" in result["Closest Color"]
+
+        # The closest color should be some red variant
+        closest = result["Closest Color"]
+        assert "red" in closest.lower() or "tomato" in closest.lower() or "coral" in closest.lower()

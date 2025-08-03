@@ -55,7 +55,7 @@ class Converter(ABC):
         pass
 
     @abstractmethod
-    def convert_value(self, value: Any) -> Dict[str, Any]:
+    def convert_value(self, value: Any) -> Dict[str, str]:
         """
         Convert a parsed value to various output formats.
 
@@ -63,7 +63,7 @@ class Converter(ABC):
             value: The parsed value to convert (e.g., 255, (255,0,0), 1722628800)
 
         Returns:
-            A dictionary mapping format names to converted values.
+            A dictionary mapping format names to converted string values.
             Returns empty dict if conversion fails.
 
         Example:
@@ -87,13 +87,13 @@ class Converter(ABC):
 
     @abstractmethod
     def choose_display_value(
-        self, formats: Dict[str, Any], interpretation_description: str
+        self, formats: Dict[str, str], interpretation_description: str
     ) -> str:
         """
         Choose the most representative single value to display for this converter.
 
         Args:
-            formats: Dictionary of format names to converted values
+            formats: Dictionary of format names to converted string values
             interpretation_description: Description of how the input was interpreted
 
         Returns:

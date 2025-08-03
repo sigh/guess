@@ -48,7 +48,7 @@ class TimestampConverter(Converter):
 
         return interpretations
 
-    def convert_value(self, value: Any) -> Dict[str, Any]:
+    def convert_value(self, value: Any) -> Dict[str, str]:
         """Convert a timestamp value to various formats."""
         # Value is always in milliseconds from get_interpretations()
         timestamp_ms = value
@@ -112,7 +112,7 @@ class TimestampConverter(Converter):
         return "Timestamp"
 
     def choose_display_value(
-        self, formats: Dict[str, Any], interpretation_description: str
+        self, formats: Dict[str, str], interpretation_description: str
     ) -> str:
         """Choose the most readable display value for timestamp formats."""
         # Prioritize readable formats that show month names or UTC

@@ -38,7 +38,7 @@ class DurationConverter(Converter):
 
         return []
 
-    def convert_value(self, value: Any) -> Dict[str, Any]:
+    def convert_value(self, value: Any) -> Dict[str, str]:
         """Convert a duration value to various formats."""
         total_seconds = float(value)
 
@@ -78,7 +78,7 @@ class DurationConverter(Converter):
         return "Duration"
 
     def choose_display_value(
-        self, formats: Dict[str, Any], interpretation_description: str
+        self, formats: Dict[str, str], interpretation_description: str
     ) -> str:
         """Choose the most readable display value for duration formats."""
         # Prioritize human readable format

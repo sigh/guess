@@ -3,6 +3,7 @@ Tests for the new hierarchical output formatting (without table formatting).
 """
 
 from guess.formatter import TableFormatter
+from guess.convert import ConversionResult
 from guess.converters.number import NumberConverter
 from guess.converters.duration import DurationConverter
 from guess.converters.bytesize import ByteSizeConverter
@@ -16,16 +17,17 @@ class TestOutputFormatting:
         """Test Mode 2: Single interpretation with multiple formats."""
         formatter = TableFormatter()
 
-        result = {
-            "converter_name": "Number",
-            "formats": {
+        result = ConversionResult(
+            converter_name="Number",
+            interpretation_description="input",
+            formats={
                 "Decimal": "255",
                 "Hexadecimal": "0xff",
                 "Binary": "0b11111111",
                 "Octal": "0o377",
             },
-            "converter": NumberConverter(),
-        }
+            display_value="255"
+        )
 
         output = formatter.format_multiple_results([result])
 
@@ -41,31 +43,34 @@ class TestOutputFormatting:
         formatter = TableFormatter()
 
         results = [
-            {
-                "converter_name": "Number",
-                "formats": {
+            ConversionResult(
+                converter_name="Number",
+                interpretation_description="input",
+                formats={
                     "Decimal": "1,722,628,800,000",
                     "Scientific": "1.72e+12",
                     "Hexadecimal": "0x190f4b62c00",
                 },
-                "converter": NumberConverter(),
-            },
-            {
-                "converter_name": "Timestamp",
-                "formats": {
+                display_value="1,722,628,800,000"
+            ),
+            ConversionResult(
+                converter_name="Timestamp",
+                interpretation_description="input",
+                formats={
                     "UTC": "2024-08-03 06:00:00 UTC",
                     "Local Time": "2024-08-02 23:00:00 PDT",
                 },
-                "converter": TimestampConverter(),
-            },
-            {
-                "converter_name": "Size",
-                "formats": {
+                display_value="2024-08-03 06:00:00 UTC"
+            ),
+            ConversionResult(
+                converter_name="Size",
+                interpretation_description="input",
+                formats={
                     "Human Readable": "1.72 TB",
                     "Decimal": "1,722,628,800,000",
                 },
-                "converter": ByteSizeConverter(),
-            },
+                display_value="1.72 TB"
+            ),
         ]
 
         output = formatter.format_multiple_results(results)
@@ -97,15 +102,16 @@ class TestOutputFormatting:
         formatter = TableFormatter()
 
         # Test single result indentation
-        result = {
-            "converter_name": "Duration",
-            "formats": {
+        result = ConversionResult(
+            converter_name="Duration",
+            interpretation_description="input",
+            formats={
                 "Human Readable": "1 hour, 30 minutes",
                 "Compact": "1h30m",
                 "Seconds": "5400",
             },
-            "converter": DurationConverter(),
-        }
+            display_value="1 hour, 30 minutes"
+        )
 
         output = formatter.format_multiple_results([result])
         lines = output.split("\n")
@@ -131,7 +137,12 @@ class TestOutputFormatting:
         ]
 
         for converter_name, expected_label in test_cases:
-            result = {"converter_name": converter_name, "formats": {"Test": "value"}}
+            result = ConversionResult(
+                converter_name=converter_name,
+                interpretation_description="input",
+                formats={"Test": "value"},
+                display_value="value"
+            )
             output = formatter._format_single_result(result)
             assert expected_label in output
 
@@ -139,11 +150,12 @@ class TestOutputFormatting:
         """Test labels for multiple interpretation mode."""
         formatter = TableFormatter()
 
-        results = [{
-            "converter_name": "Number",
-            "formats": {"Decimal": "255"},
-            "converter": NumberConverter()
-        }]
+        results = [ConversionResult(
+            converter_name="Number",
+            interpretation_description="input",
+            formats={"Decimal": "255"},
+            display_value="255"
+        )]
 
         output = formatter._format_multiple_interpretations(results)
         assert "Number from input" in output

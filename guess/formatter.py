@@ -2,7 +2,8 @@
 Clean hierarchical formatter for output display.
 """
 
-from typing import Dict, Any, List
+from typing import List
+from .convert import ConversionResult
 
 
 class TableFormatter:
@@ -16,7 +17,7 @@ class TableFormatter:
     Uses simple indentation and clean spacing for readability without table formatting.
     """
 
-    def format_multiple_results(self, results_list: List[Dict[str, Any]]) -> str:
+    def format_multiple_results(self, results_list: List[ConversionResult]) -> str:
         """
         Format multiple converter results with clean hierarchical formatting.
 
@@ -24,8 +25,7 @@ class TableFormatter:
         Mode 2 (Single Type): Shows multiple formats of the same interpretation
 
         Args:
-            results_list: List of converter results, each containing
-                         'converter_name' and 'formats' keys
+            results_list: List of ConversionResult objects
 
         Returns:
             Clean formatted string ready for display, or empty string if no results
@@ -44,11 +44,11 @@ class TableFormatter:
             # Mode 1: Multiple interpretations - show one format per type
             return self._format_multiple_interpretations(results_list)
 
-    def _format_single_result(self, result: Dict[str, Any]) -> str:
+    def _format_single_result(self, result: ConversionResult) -> str:
         """Format single converter result with multiple formats."""
-        converter_name = result["converter_name"]
-        interpretation_description = result.get("interpretation_description", "input")
-        formats = result["formats"]
+        converter_name = result.converter_name
+        interpretation_description = result.interpretation_description
+        formats = result.formats
 
         lines = []
         # Use the specific interpretation description for accurate labeling
@@ -64,7 +64,7 @@ class TableFormatter:
         return "\n".join(lines)
 
     def _format_multiple_interpretations(
-        self, results_list: List[Dict[str, Any]]
+        self, results_list: List[ConversionResult]
     ) -> str:
         """Format multiple converter results showing one format per type."""
         lines = []
@@ -73,12 +73,10 @@ class TableFormatter:
         formatted_results = []
 
         for result in results_list:
-            converter_name = result["converter_name"]
-            interpretation_description = result.get(
-                "interpretation_description", "input"
-            )
-            formats = result["formats"]
-            display_value = result.get("display_value")
+            converter_name = result.converter_name
+            interpretation_description = result.interpretation_description
+            formats = result.formats
+            display_value = result.display_value
 
             # If no display_value provided, use the first available value as fallback
             if display_value is None and formats:

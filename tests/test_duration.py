@@ -29,7 +29,7 @@ class TestDurationConverter:
         # Test compact duration format like "1h30m"
         interpretations = self.converter.get_interpretations("1h30m")
         assert len(interpretations) == 1
-        assert interpretations[0].description == "duration string"
+        assert interpretations[0].description == "mixed"
         assert interpretations[0].value == 5400  # 1 hour + 30 minutes
 
         # Test float unit format like "2.5 hours" (with space)

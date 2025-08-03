@@ -33,7 +33,7 @@ class DurationConverter(Converter):
             value = self._parse_duration_units(cleaned)
             if value is not None:
                 return [
-                    Interpretation(description="duration string", value=float(value))
+                    Interpretation(description="mixed", value=float(value))
                 ]
 
         return []

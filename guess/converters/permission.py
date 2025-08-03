@@ -46,14 +46,6 @@ class PermissionConverter(Converter):
             except ValueError:
                 pass
 
-        # Check for decimal values that could be permissions
-        elif cleaned.isdigit():
-            value = int(cleaned)
-            if 0 <= value <= 511:
-                interpretations.append(
-                    Interpretation(description="decimal", value=value)
-                )
-
         return interpretations
 
     def convert_value(self, value: Any) -> Dict[str, Any]:
@@ -67,10 +59,7 @@ class PermissionConverter(Converter):
         result["Symbolic"] = self._octal_to_symbolic(octal_value)
 
         # Octal notation
-        result["Octal"] = f"0o{octal_value:03o}"
-
-        # Decimal equivalent
-        result["Decimal"] = str(octal_value)
+        result["Octal"] = f"0{octal_value:03o}"
 
         # Permission breakdown
         result["Breakdown"] = self._format_breakdown(octal_value)
@@ -102,11 +91,6 @@ class PermissionConverter(Converter):
                 return int(input_str, 8)
             except ValueError:
                 return None
-        elif input_str.isdigit():
-            # Decimal format
-            value = int(input_str)
-            if 0 <= value <= 511:  # 777 octal = 511 decimal
-                return value
 
         return None
 

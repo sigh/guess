@@ -52,11 +52,11 @@ class TableFormatter:
 
         lines = []
         # Use the specific interpretation description for accurate labeling
-        lines.append(f"{converter_name} (from {interpretation_description}):")
+        lines.append(f"{converter_name} from {interpretation_description}:")
 
         # Track seen values to avoid duplicates
         seen_values = set()
-        for key, value in formats.items():
+        for value in formats.values():
             if value not in seen_values:
                 lines.append(f"  {value}")
                 seen_values.add(value)
@@ -69,77 +69,29 @@ class TableFormatter:
         """Format multiple converter results showing one format per type."""
         lines = []
 
+        # Build formatted results first
+        formatted_results = []
+
         for result in results_list:
             converter_name = result["converter_name"]
             interpretation_description = result.get(
                 "interpretation_description", "input"
             )
             formats = result["formats"]
-            converter = result.get("converter")
+            display_value = result.get("display_value")
 
-            # Get the most representative value for this interpretation
-            if converter:
-                display_value = converter.choose_display_value(
-                    formats, interpretation_description
-                )
-                # If converter returns None, use the first available value
-                if display_value is None and formats:
-                    display_value = next(iter(formats.values()))
-            else:
-                # Fallback to internal method for backward compatibility
-                display_value = self._get_primary_display_value(formats)
+            # If no display_value provided, use the first available value as fallback
+            if display_value is None and formats:
+                display_value = next(iter(formats.values()))
 
-            # Use the specific interpretation description for accurate labeling
-            lines.append(f"{converter_name} (from {interpretation_description}):")
-            lines.append(f"  {display_value}")
-            lines.append("")  # Empty line between interpretations
+            label = f"{converter_name} from {interpretation_description}:"
+            formatted_results.append((label, display_value))
 
-        # Remove trailing empty line
-        if lines and lines[-1] == "":
-            lines.pop()
+        # Calculate maximum label width for alignment
+        max_label_width = max(len(label) for label, _ in formatted_results)
+
+        # Format with aligned columns
+        for label, display_value in formatted_results:
+            lines.append(f"{label:<{max_label_width + 2}}{display_value}")
 
         return "\n".join(lines)
-
-    def _get_primary_display_value(self, formats: Dict[str, Any]) -> str:
-        """Get the most representative single value to display for a converter.
-
-        DEPRECATED: This method is kept for backward compatibility only.
-        Use converter.choose_display_value() instead.
-        """
-        # Priority order for different converter types - choose most readable format
-
-        # For byte size converter, show both decimal and binary
-        if "Raw Bytes" in formats:  # This identifies byte size converter
-            if "Decimal" in formats and "Binary" in formats:
-                return f"{formats['Decimal']} / {formats['Binary']}"
-            elif "Decimal" in formats:
-                return str(formats["Decimal"])
-            elif "Binary" in formats:
-                return str(formats["Binary"])
-
-        # For number converter, choose based on size and readability
-        if "Human Readable" in formats:
-            return str(formats["Human Readable"])
-        elif "Decimal" in formats and "Scientific" in formats:
-            decimal_val = str(formats["Decimal"])
-            return decimal_val
-        elif "Decimal" in formats:
-            return str(formats["Decimal"])
-
-        # For timestamp converter, prioritize readable formats
-        if "Local Time" in formats:
-            return str(formats["Local Time"])
-        elif "UTC" in formats:
-            return str(formats["UTC"])
-        elif "Human Readable" in formats:
-            return str(formats["Human Readable"])
-
-        # For duration converter, prioritize human readable
-        if "Human Readable" in formats:
-            return str(formats["Human Readable"])
-
-        # Default: return first available value
-        if formats:
-            return str(next(iter(formats.values())))
-
-        return "Unknown"

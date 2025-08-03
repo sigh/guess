@@ -24,7 +24,7 @@ class TestCLIIntegration:
         """Test --help flag works."""
         returncode, stdout, stderr = self.run_guess("--help")
         assert returncode == 0
-        assert "Guess - Intelligent data format conversion utility" in stdout
+        assert "Guess - Simple data format conversion utility" in stdout
         assert "Examples:" in stdout
 
     def test_version_command(self):
@@ -109,9 +109,9 @@ class TestCLIIntegration:
         assert returncode == 0
 
         # Should show multiple interpretations
-        assert "Number (from decimal):" in stdout
-        assert "Timestamp (from unix seconds):" in stdout
-        assert "Size (from bytes):" in stdout
+        assert "Number from decimal" in stdout
+        assert "Timestamp from unix seconds" in stdout
+        assert "Size from bytes" in stdout
 
     def test_single_interpretation_mode(self):
         """Test that unambiguous inputs show single interpretation."""
@@ -119,7 +119,7 @@ class TestCLIIntegration:
         assert returncode == 0
 
         # Should show single interpretation with multiple formats
-        assert "Duration (from duration string):" in stdout
+        assert "Duration from mixed:" in stdout
         assert "1 hour, 30 minutes" in stdout
         assert "5400 seconds" in stdout
 
@@ -128,12 +128,12 @@ class TestCLIIntegration:
         # Completely invalid input
         returncode, stdout, stderr = self.run_guess("not-a-number")
         assert returncode == 1
-        assert "Error" in stdout or "Unable" in stdout
+        assert "Error" in stderr or "Unable" in stderr
 
         # Invalid explicit type
         returncode, stdout, stderr = self.run_guess("time", "invalid")
         assert returncode == 1
-        assert "Unable to convert" in stdout
+        assert "Unable to convert" in stderr
 
     def test_negative_numbers(self):
         """Test handling of negative numbers."""
@@ -164,13 +164,13 @@ class TestCLIIntegration:
         # File permissions - now handled by permission converter
         returncode, stdout, stderr = self.run_guess("755")
         assert returncode == 0
-        assert "Permission (from octal):" in stdout  # Permission converter triggered
+        assert "Permission from octal" in stdout  # Permission converter triggered
 
         # RGB context - decimal values no longer trigger color converter
         # Test with explicit hex color instead
         returncode, stdout, stderr = self.run_guess("#FF0000")
         assert returncode == 0
-        assert "Color (from hex):" in stdout  # Color converter triggered
+        assert "Color from hex:" in stdout  # Color converter triggered
 
     def test_binary_and_octal_inputs(self):
         """Test binary and octal input parsing."""

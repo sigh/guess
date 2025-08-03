@@ -52,21 +52,6 @@ class TestPermissionConverter:
         assert interpretations[0].description == "string"
         assert interpretations[0].value == 0o000
 
-    def test_get_interpretations_decimal_equivalent(self):
-        """Test interpretation of decimal equivalent."""
-        interpretations = self.converter.get_interpretations("493")  # 755 in decimal
-        assert len(interpretations) == 1
-        assert interpretations[0].description == "decimal"
-        assert interpretations[0].value == 493
-
-        # Note: 420 is interpreted as octal "420" (not decimal), so it becomes 0o420 = 272 decimal
-        interpretations = self.converter.get_interpretations("420")
-        assert len(interpretations) == 1
-        assert (
-            interpretations[0].description == "octal"
-        )  # 3-digit numbers treated as octal
-        assert interpretations[0].value == 0o420  # 272 in decimal
-
     def test_get_interpretations_invalid_values(self):
         """Test rejection of invalid permission values."""
         assert (
@@ -84,20 +69,10 @@ class TestPermissionConverter:
 
         assert "Symbolic" in result
         assert "Octal" in result
-        assert "Decimal" in result
         assert "Breakdown" in result
 
         assert result["Symbolic"] == "rwxr-xr-x"
-        assert result["Octal"] == "0o755"
-        assert result["Decimal"] == "493"
-
-    def test_convert_value_decimal_input(self):
-        """Test conversion when input is decimal value."""
-        result = self.converter.convert_value(493)  # 755 in decimal
-
-        assert result["Symbolic"] == "rwxr-xr-x"
-        assert result["Octal"] == "0o755"
-        assert result["Decimal"] == "493"
+        assert result["Octal"] == "0755"
 
     def test_convert_value_breakdown_formatting(self):
         """Test that permission breakdown is properly formatted."""
@@ -120,8 +95,7 @@ class TestPermissionConverter:
         """Test display value selection."""
         formats = {
             "Symbolic": "rwxr-xr-x",
-            "Octal": "0o755",
-            "Decimal": "493",
+            "Octal": "0755",
             "Breakdown": "owner: read, write, execute, group: read, execute, others: read, execute",
         }
 
@@ -130,7 +104,7 @@ class TestPermissionConverter:
         assert display_value == "rwxr-xr-x"
 
         # Should return None if Symbolic is missing
-        formats_no_symbolic = {"Octal": "0o755", "Decimal": "493"}
+        formats_no_symbolic = {"Octal": "0755"}
         display_value = self.converter.choose_display_value(
             formats_no_symbolic, "octal"
         )

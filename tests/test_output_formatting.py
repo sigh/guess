@@ -57,10 +57,10 @@ class TestOutputFormatting:
                 converter_name="Timestamp",
                 interpretation_description="input",
                 formats={
-                    "UTC": "2024-08-03 06:00:00 UTC",
-                    "Local Time": "2024-08-02 23:00:00 PDT",
+                    "ISO 8601": "2024-08-03T06:00:00Z",
+                    "Human Readable": "Saturday, August 03, 2024 at 06:00:00 AM",
                 },
-                display_value="2024-08-03 06:00:00 UTC"
+                display_value="Saturday, August 03, 2024 at 06:00:00 AM"
             ),
             ConversionResult(
                 converter_name="Size",

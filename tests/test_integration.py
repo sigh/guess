@@ -46,8 +46,8 @@ class TestCLIIntegration:
         assert returncode == 0
         assert "2024" in stdout  # Year should be present in timestamp output
         assert (
-            "August" in stdout or "UTC" in stdout
-        )  # Month or UTC format should be present
+            "August" in stdout or "2024-08" in stdout
+        )  # Month name or ISO date should be present
 
     def test_duration_conversion(self):
         """Test duration conversion."""
@@ -68,8 +68,8 @@ class TestCLIIntegration:
         # Test timestamp type
         returncode, stdout, stderr = self.run_guess("time", "1722628800")
         assert returncode == 0
-        assert "UTC" in stdout
         assert "2024-08-02" in stdout or "2024-08-03" in stdout
+        assert "unix seconds" in stdout
 
         # Test number type
         returncode, stdout, stderr = self.run_guess("number", "255")
@@ -217,7 +217,8 @@ class TestEdgeCases:
         """Test millisecond timestamp handling."""
         returncode, stdout, stderr = self.run_guess("time", "1722628800000")
         assert returncode == 0
-        assert "1722628800000" in stdout  # Shows milliseconds in output
+        assert "1722628800" in stdout  # Shows seconds in output
+        assert "unix milliseconds" in stdout  # Shows interpretation description
 
     def test_zero_values(self):
         """Test handling of zero values."""

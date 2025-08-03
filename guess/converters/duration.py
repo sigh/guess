@@ -3,9 +3,9 @@ Duration converter for time periods and human-readable durations.
 """
 
 import re
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 from guess.converters.base import Converter, Interpretation
-from guess.utils import parse_float_unit, format_number_clean, format_units
+from guess.utils import parse_float_unit, format_units
 
 
 class DurationConverter(Converter):
@@ -113,7 +113,7 @@ class DurationConverter(Converter):
 
         return total_seconds
 
-    def _parse_float_unit(self, input_str: str) -> tuple[float, str]:
+    def _parse_float_unit(self, input_str: str) -> Tuple[float, str]:
         """Parse float unit format like '2.5 hours', '1.5 years'."""
         # Define time unit multipliers (in seconds)
         time_multipliers = {

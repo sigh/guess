@@ -231,6 +231,16 @@ class TestEdgeCases:
         assert returncode == 0
         assert "255" in stdout
 
+    def test_multiple_arguments(self):
+        """Test handling of multiple arguments in input."""
+        returncode, stdout, stderr = self.run_guess("1", "GB")
+        assert returncode == 0
+        assert "1000000000 bytes" in stdout
+
+        returncode, stdout, stderr = self.run_guess("size", "1", "GB")
+        assert returncode == 0
+        assert "1000000000 bytes" in stdout
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

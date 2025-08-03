@@ -8,145 +8,105 @@ from guess import registry
 from guess.formatter import TableFormatter
 
 
+def _display_results(results, converter_name=None, value=None):
+    """Formats and prints conversion results or an error message."""
+    if results:
+        formatter = TableFormatter()
+        print(formatter.format_multiple_results(results))
+        sys.exit(0)
+    else:
+        if converter_name and value:
+            print(f"Unable to convert '{value}' as {converter_name}")
+        else:
+            print("Unable to convert input.")
+        sys.exit(1)
+
+
 def main():
     """
     Main entry point for the guess CLI application.
 
     Handles two modes of operation:
-    1. Explicit type commands: guess <type> <value>
-    2. Auto-detection mode: guess <value>
-
-    In explicit type mode, forces interpretation using a specific converter.
-    In auto-detection mode, tries all converters and shows multiple interpretations.
-
-    Args:
-        None (uses sys.argv for command-line arguments)
-
-    Returns:
-        None (exits with code 0 on success, 1 on error)
-
-    Examples:
-        guess 255                    # Multi-interpretation mode
-        guess number 255             # Force number conversion
-        guess time 1722628800        # Force timestamp conversion
-        guess --help                 # Show help
+    1. Explicit type commands: guess <type> <value...>
+    2. Auto-detection mode: guess <value...>
     """
-    # Check if first argument is a known subcommand
-    subcommands = ["time", "duration", "size", "number", "color", "permission"]
+    subcommand_info = {
+        "time": "Force timestamp interpretation",
+        "duration": "Force duration interpretation",
+        "size": "Force byte size interpretation",
+        "number": "Force number base interpretation",
+        "color": "Force color interpretation",
+        "permission": "Force file permission interpretation",
+    }
 
-    if len(sys.argv) > 1 and sys.argv[1] in subcommands:
-        # Use subcommand parser
-        parser = argparse.ArgumentParser(
-            description="Guess - Intelligent data format conversion utility",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-        )
+    # Define the parser and all common attributes once
+    parser = argparse.ArgumentParser(
+        prog="guess",
+        description="Guess - Intelligent data format conversion utility.",
+        epilog="Examples:\n"
+        "  guess 1722628800              # Auto-detect input type\n"
+        "  guess 2 GB                      # Auto-detect '2 GB' as a size\n"
+        "  guess time 2025-08-03 12:00   # Force timestamp interpretation\n"
+        "  guess color #FF5733 orange     # Force color interpretation\n"
+        "  guess --help                    # Show this help message",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("--version", action="version", version="guess 1.1.0")
 
+    # Check sys.argv to determine which arguments to add to the parser
+    is_subcommand_mode = len(sys.argv) > 1 and sys.argv[1] in subcommand_info
+
+    if is_subcommand_mode:
+        # --- Configure parser for SUBCOMMAND MODE ---
         subparsers = parser.add_subparsers(
-            dest="converter_type", help="Force specific converter type"
+            dest="converter_type",
+            required=True,
+            help="Force a specific converter type."
         )
-
-        # Time/timestamp subcommand
-        time_parser = subparsers.add_parser(
-            "time", help="Force timestamp interpretation"
-        )
-        time_parser.add_argument("value", help="Value to convert as timestamp")
-
-        # Duration subcommand
-        duration_parser = subparsers.add_parser(
-            "duration", help="Force duration interpretation"
-        )
-        duration_parser.add_argument("value", help="Value to convert as duration")
-
-        # Size/byte size subcommand
-        size_parser = subparsers.add_parser(
-            "size", help="Force byte size interpretation"
-        )
-        size_parser.add_argument("value", help="Value to convert as byte size")
-
-        # Number subcommand
-        number_parser = subparsers.add_parser(
-            "number", help="Force number base interpretation"
-        )
-        number_parser.add_argument("value", help="Value to convert as number")
-
-        # Color subcommand
-        color_parser = subparsers.add_parser("color", help="Force color interpretation")
-        color_parser.add_argument("value", help="Value to convert as color")
-
-        # Permission subcommand
-        permission_parser = subparsers.add_parser(
-            "permission", help="Force file permission interpretation"
-        )
-        permission_parser.add_argument(
-            "value", help="Value to convert as file permission"
-        )
-
-        args = parser.parse_args()
-
-        # Handle explicit converter type
-        converter = registry.get_converter_by_name(args.converter_type)
-        if converter:
-            interpretations = converter.get_interpretations(args.value)
-            if interpretations:
-                formatter = TableFormatter()
-                # Convert interpretations to the format expected by formatter
-                results = []
-                for interpretation in interpretations:
-                    formats = converter.convert_value(interpretation.value)
-                    if formats:
-                        results.append(
-                            {
-                                "converter_name": converter.get_name(),
-                                "interpretation_description": interpretation.description,
-                                "formats": formats,
-                            }
-                        )
-                if results:
-                    print(formatter.format_multiple_results(results))
-                    return
-
-        print(f"Unable to convert '{args.value}' as {args.converter_type}")
-        sys.exit(1)
-
+        for name, help_text in subcommand_info.items():
+            sub_parser = subparsers.add_parser(name, help=help_text)
+            sub_parser.add_argument(
+                "value",
+                nargs="+",
+                help=f"Value(s) to convert as {name}",
+            )
     else:
-        # Use simple parser for auto-detection
-        parser = argparse.ArgumentParser(
-            description="Guess - Intelligent data format conversion utility",
-            epilog="Examples:\n"
-            "  guess 255              # Convert number to different bases\n"
-            "  guess 1234567890       # Show multiple interpretations\n"
-            "  guess time 1722628800  # Force timestamp interpretation\n"
-            "  guess number 255       # Force number interpretation\n"
-            "  guess color #FF0000    # Force color interpretation\n"
-            "  guess permission 755   # Force file permission interpretation\n"
-            "  guess --help           # Show this help message",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-        )
-
+        # --- Configure parser for AUTO-DETECT MODE ---
         parser.add_argument(
-            "value", nargs="?", help="Value to convert (auto-detect type)"
+            "value",
+            nargs="*", # Use '*' to allow `guess --help` without a value
+            help="Value to convert (auto-detects type)",
         )
 
-        parser.add_argument("--version", action="version", version="guess 1.1.0")
+    # Now that the parser is fully configured for the correct mode, parse the args
+    args = parser.parse_args()
 
-        args = parser.parse_args()
+    # The rest of the logic remains the same
+    if is_subcommand_mode:
+        value_str = " ".join(args.value)
+        converter = registry.get_converter_by_name(args.converter_type)
+        interpretations = converter.get_interpretations(value_str)
 
+        results = []
+        if interpretations:
+            for interpretation in interpretations:
+                formats = converter.convert_value(interpretation.value)
+                if formats:
+                    results.append({
+                        "converter_name": converter.get_name(),
+                        "interpretation_description": interpretation.description,
+                        "formats": formats,
+                    })
+
+        _display_results(results, converter_name=args.converter_type, value=value_str)
+    else:
         if not args.value:
             parser.print_help()
             sys.exit(1)
 
-        # Try all converters and get results
-        results = registry.try_convert(args.value)
-
-        # Format and display results
-        formatter = TableFormatter()
-
-        if results:
-            output = formatter.format_multiple_results(results)
-            print(output)
-        else:
-            print("Unable to convert input")
-            sys.exit(1)
+        value_str = " ".join(args.value)
+        results = registry.try_convert(value_str)
+        _display_results(results)
 
 
 if __name__ == "__main__":

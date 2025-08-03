@@ -3,7 +3,7 @@ Byte size converter for data storage units.
 """
 
 import re
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Union, Tuple
 from guess.converters.base import Converter, Interpretation
 
 
@@ -85,7 +85,7 @@ class ByteSizeConverter(Converter):
 
         return result
 
-    def _parse_byte_units(self, input_str: str) -> tuple[int, str] | tuple[None, None]:
+    def _parse_byte_units(self, input_str: str) -> Union[Tuple[int, str], Tuple[None, None]]:
         """Parse byte size string with units like '1GB', '2.5GiB', etc."""
         # Unit multipliers
         decimal_multipliers = {

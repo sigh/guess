@@ -340,7 +340,7 @@ Color (from hex):
   rgb(255, 0, 0)
   rgb(100%, 0%, 0%)
   hsl(0, 100%, 50%)
-  <red square>
+  🟥
   red
 ```
 

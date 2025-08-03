@@ -119,9 +119,9 @@ class TestCLIIntegration:
         assert returncode == 0
 
         # Should show single interpretation with multiple formats
-        assert "Duration (from string):" in stdout
+        assert "Duration (from duration string):" in stdout
         assert "1 hour, 30 minutes" in stdout
-        assert "1h30m" in stdout
+        assert "5400 seconds" in stdout
 
     def test_error_handling(self):
         """Test error handling for invalid inputs."""
@@ -151,7 +151,7 @@ class TestCLIIntegration:
         """Test scientific notation handling."""
         returncode, stdout, stderr = self.run_guess("1.5e9")
         assert returncode == 0
-        assert "1.50e+09" in stdout
+        assert "1.5 billion" in stdout
 
     def test_large_numbers(self):
         """Test handling of large numbers."""

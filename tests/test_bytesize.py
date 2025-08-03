@@ -29,24 +29,45 @@ class TestByteSizeConverter:
         # Various byte size formats
         interpretations = self.converter.get_interpretations("1KB")
         assert len(interpretations) == 1
-        assert interpretations[0].description == "byte size"
+        assert interpretations[0].description == "KB"
         assert interpretations[0].value == 1000
 
         interpretations = self.converter.get_interpretations("1MB")
         assert len(interpretations) == 1
-        assert interpretations[0].description == "byte size"
+        assert interpretations[0].description == "MB"
         assert interpretations[0].value == 1000000
 
         interpretations = self.converter.get_interpretations("1GB")
         assert len(interpretations) == 1
-        assert interpretations[0].description == "byte size"
+        assert interpretations[0].description == "GB"
         assert interpretations[0].value == 1000000000
 
         # Binary units
         interpretations = self.converter.get_interpretations("1KiB")
         assert len(interpretations) == 1
-        assert interpretations[0].description == "byte size"
+        assert interpretations[0].description == "KiB"
         assert interpretations[0].value == 1024
+
+        # Test larger units - petabytes and exabytes
+        interpretations = self.converter.get_interpretations("1PB")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "PB"
+        assert interpretations[0].value == 1000**5
+
+        interpretations = self.converter.get_interpretations("1EB")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "EB"
+        assert interpretations[0].value == 1000**6
+
+        interpretations = self.converter.get_interpretations("1PiB")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "PiB"
+        assert interpretations[0].value == 1024**5
+
+        interpretations = self.converter.get_interpretations("1EiB")
+        assert len(interpretations) == 1
+        assert interpretations[0].description == "EiB"
+        assert interpretations[0].value == 1024**6
 
     def test_get_interpretations_invalid_values(self):
         """Test that invalid values return no interpretations."""

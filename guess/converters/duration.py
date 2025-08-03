@@ -5,6 +5,7 @@ Duration converter for time periods and human-readable durations.
 import re
 from typing import Dict, Any, List
 from guess.converters.base import Converter, Interpretation
+from guess.utils import parse_float_unit, format_number_clean, format_units
 
 
 class DurationConverter(Converter):
@@ -13,46 +14,62 @@ class DurationConverter(Converter):
     def get_interpretations(self, input_str: str) -> List[Interpretation]:
         """Get all possible interpretations of the input as a duration."""
         cleaned = input_str.strip().lower()
-        interpretations = []
 
-        # Check for pure numbers (assume seconds)
-        if cleaned.isdigit():
-            seconds = int(cleaned)
-            if 0 <= seconds < 604800:  # Less than 1 week
-                interpretations.append(
-                    Interpretation(description="seconds", value=float(seconds))
-                )
+        # Check for pure numbers (assume seconds) - support both integers and floats
+        try:
+            seconds = float(cleaned)
+            if seconds >= 0:  # Only accept non-negative durations
+                return [Interpretation(description="seconds", value=seconds)]
+        except ValueError:
+            pass
 
-        # Check for duration with units
-        elif re.match(r"^(\d+[wdhms])+$", cleaned):
-            try:
-                value = self._parse_duration_units(cleaned)
-                if value is not None:
-                    interpretations.append(
-                        Interpretation(description="string", value=float(value))
-                    )
-            except ValueError:
-                pass
+        # Check for <float> <unit> format (e.g., "2.5 hours", "2.5hours", "1.5 years")
+        value, unit = self._parse_float_unit(cleaned)
+        if value is not None:
+            return [Interpretation(description=unit, value=float(value))]
 
-        return interpretations
+        # Check for duration with units (compact format like 1h30m)
+        if re.match(r"^(\d+[wdhms])+$", cleaned):
+            value = self._parse_duration_units(cleaned)
+            if value is not None:
+                return [
+                    Interpretation(description="duration string", value=float(value))
+                ]
+
+        return []
 
     def convert_value(self, value: Any) -> Dict[str, Any]:
         """Convert a duration value to various formats."""
-        total_seconds = int(value)
+        total_seconds = float(value)
 
-        # Human readable format
-        human_readable = self._format_human_readable_duration(total_seconds)
+        if total_seconds >= 1:
+            human_readable = self._format_human_readable_duration(total_seconds)
+        else:
+            # For sub-second durations, use a threshold-based display
+            if total_seconds >= 0.001:
+                human_readable = format_units(total_seconds * 1000, "millisecond")
+            elif total_seconds >= 0.000001:
+                human_readable = format_units(total_seconds * 1000000, "microsecond")
+            else:
+                human_readable = format_units(total_seconds * 1000000000, "nanosecond")
 
-        # Compact format
-        compact = self._format_compact_duration(total_seconds)
+        # Format seconds using utility function to avoid unnecessary decimal points
+        seconds_display = format_units(total_seconds, "second")
 
         result = {
             "Human Readable": human_readable,
-            "Compact": compact,
-            "Seconds": str(total_seconds),
-            "Minutes": f"{total_seconds / 60:.2f}",
-            "Hours": f"{total_seconds / 3600:.2f}",
+            "Seconds": seconds_display,
         }
+
+        # For sub-second durations, also add the smart formatting as alternative
+        if total_seconds < 1:
+            smart_format = self._format_subsecond_duration(total_seconds)
+            result["Alternative"] = smart_format
+
+        # Add years output if duration is large enough (>= 1 year)
+        if total_seconds >= 365.25 * 24 * 3600:  # 1 year in seconds
+            years = total_seconds / (365.25 * 24 * 3600)
+            result["Years"] = format_units(years, "year")
 
         return result
 
@@ -96,46 +113,104 @@ class DurationConverter(Converter):
 
         return total_seconds
 
-    def _format_human_readable_duration(self, total_seconds: int) -> str:
+    def _parse_float_unit(self, input_str: str) -> tuple[float, str]:
+        """Parse float unit format like '2.5 hours', '1.5 years'."""
+        # Define time unit multipliers (in seconds)
+        time_multipliers = {
+            "years": 365.25 * 24 * 3600,
+            "weeks": 604800,
+            "days": 86400,
+            "hours": 3600,
+            "minutes": 60,
+            "seconds": 1,
+            "milliseconds": 0.001,
+            "microseconds": 0.000001,
+            "nanoseconds": 0.000000001,
+        }
+
+        # Define aliases for time units
+        time_aliases = {
+            "year": "years",
+            "y": "years",
+            "week": "weeks",
+            "w": "weeks",
+            "day": "days",
+            "d": "days",
+            "hour": "hours",
+            "hrs": "hours",
+            "hr": "hours",
+            "h": "hours",
+            "minute": "minutes",
+            "mins": "minutes",
+            "min": "minutes",
+            "m": "minutes",
+            "second": "seconds",
+            "secs": "seconds",
+            "sec": "seconds",
+            "s": "seconds",
+            "millisecond": "milliseconds",
+            "ms": "milliseconds",
+            "microsecond": "microseconds",
+            "us": "microseconds",
+            "μs": "microseconds",
+            "nanosecond": "nanoseconds",
+            "ns": "nanoseconds",
+        }
+
+        value, canonical_unit = parse_float_unit(
+            input_str, time_multipliers, time_aliases
+        )
+
+        if value is None or canonical_unit is None:
+            return None, None
+
+        return value, canonical_unit
+
+    def _format_human_readable_duration(self, total_seconds_input) -> str:
         """Format duration as human readable string."""
-        weeks = total_seconds // 604800
-        days = (total_seconds % 604800) // 86400
-        hours = (total_seconds % 86400) // 3600
-        minutes = (total_seconds % 3600) // 60
-        seconds = total_seconds % 60
+        # Convert to float to handle both int and float inputs
+        total_seconds_float = float(total_seconds_input)
+
+        # Extract whole seconds for time unit calculations
+        total_whole_seconds = int(total_seconds_float)
+        fractional_seconds = total_seconds_float - total_whole_seconds
+
+        # Don't include years in human readable - use precise calculations only
+        weeks = total_whole_seconds // 604800
+        days = (weeks % 604800) // 86400
+        hours = (total_whole_seconds % 86400) // 3600
+        minutes = (total_whole_seconds % 3600) // 60
+        whole_seconds_remainder = total_whole_seconds % 60
+
+        # Combine whole seconds remainder with fractional part
+        final_seconds = whole_seconds_remainder + fractional_seconds
 
         human_parts = []
         if weeks > 0:
-            human_parts.append(f"{weeks} week{'s' if weeks != 1 else ''}")
+            human_parts.append(format_units(weeks, "week"))
         if days > 0:
-            human_parts.append(f"{days} day{'s' if days != 1 else ''}")
+            human_parts.append(format_units(days, "day"))
         if hours > 0:
-            human_parts.append(f"{hours} hour{'s' if hours != 1 else ''}")
+            human_parts.append(format_units(hours, "hour"))
         if minutes > 0:
-            human_parts.append(f"{minutes} minute{'s' if minutes != 1 else ''}")
-        if seconds > 0:
-            human_parts.append(f"{seconds} second{'s' if seconds != 1 else ''}")
+            human_parts.append(format_units(minutes, "minute"))
+        if final_seconds > 0:
+            human_parts.append(format_units(final_seconds, "second"))
 
         return ", ".join(human_parts) if human_parts else "0 seconds"
 
-    def _format_compact_duration(self, total_seconds: int) -> str:
-        """Format duration as compact string."""
-        weeks = total_seconds // 604800
-        days = (total_seconds % 604800) // 86400
-        hours = (total_seconds % 86400) // 3600
-        minutes = (total_seconds % 3600) // 60
-        seconds = total_seconds % 60
+    def _format_subsecond_duration(self, total_seconds: float) -> str:
+        """Format sub-second duration using the largest unit with no fractional part."""
+        # Try milliseconds first (1000 ms = 1 second)
+        milliseconds = total_seconds * 1000
+        if milliseconds == int(milliseconds):
+            return format_units(int(milliseconds), "millisecond")
 
-        compact_parts = []
-        if weeks > 0:
-            compact_parts.append(f"{weeks}w")
-        if days > 0:
-            compact_parts.append(f"{days}d")
-        if hours > 0:
-            compact_parts.append(f"{hours}h")
-        if minutes > 0:
-            compact_parts.append(f"{minutes}m")
-        if seconds > 0:
-            compact_parts.append(f"{seconds}s")
+        # Try microseconds (1,000,000 μs = 1 second)
+        microseconds = total_seconds * 1000000
+        if microseconds == int(microseconds):
+            return format_units(int(microseconds), "microsecond")
 
-        return "".join(compact_parts) if compact_parts else "0s"
+        # Fall back to nanoseconds (1,000,000,000 ns = 1 second)
+        nanoseconds = total_seconds * 1000000000
+        return format_units(nanoseconds, "nanosecond")

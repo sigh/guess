@@ -54,8 +54,12 @@ class TableFormatter:
         # Use the specific interpretation description for accurate labeling
         lines.append(f"{converter_name} (from {interpretation_description}):")
 
+        # Track seen values to avoid duplicates
+        seen_values = set()
         for key, value in formats.items():
-            lines.append(f"  {value}")
+            if value not in seen_values:
+                lines.append(f"  {value}")
+                seen_values.add(value)
 
         return "\n".join(lines)
 

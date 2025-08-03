@@ -3,7 +3,7 @@ Byte size converter for data storage units.
 """
 
 import re
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 from guess.converters.base import Converter, Interpretation
 
 
@@ -22,12 +22,14 @@ class ByteSizeConverter(Converter):
                 interpretations.append(Interpretation(description="bytes", value=size))
 
         # Check for unit-based input
-        elif re.match(r"^\d+(?:\.\d+)?\s*([kmgt]?i?b)$", cleaned):
+        elif re.match(r"^\d+(?:\.\d+)?\s*([kmgtpe]?i?b)$", cleaned):
             try:
-                value = self._parse_byte_units(cleaned)
+                value, unit = self._parse_byte_units(cleaned)
                 if value is not None:
                     interpretations.append(
-                        Interpretation(description="byte size", value=value)
+                        Interpretation(
+                            description=self._format_unit_display(unit), value=value
+                        )
                     )
             except ValueError:
                 pass
@@ -40,6 +42,10 @@ class ByteSizeConverter(Converter):
 
         # Decimal (1000-based) units
         decimal_units = []
+        if total_bytes >= 1000**6:
+            decimal_units.append(f"{total_bytes / 1000**6:.2f} EB")
+        if total_bytes >= 1000**5:
+            decimal_units.append(f"{total_bytes / 1000**5:.2f} PB")
         if total_bytes >= 1000**4:
             decimal_units.append(f"{total_bytes / 1000**4:.2f} TB")
         if total_bytes >= 1000**3:
@@ -51,6 +57,10 @@ class ByteSizeConverter(Converter):
 
         # Binary (1024-based) units
         binary_units = []
+        if total_bytes >= 1024**6:
+            binary_units.append(f"{total_bytes / 1024**6:.2f} EiB")
+        if total_bytes >= 1024**5:
+            binary_units.append(f"{total_bytes / 1024**5:.2f} PiB")
         if total_bytes >= 1024**4:
             binary_units.append(f"{total_bytes / 1024**4:.2f} TiB")
         if total_bytes >= 1024**3:
@@ -75,7 +85,7 @@ class ByteSizeConverter(Converter):
 
         return result
 
-    def _parse_byte_units(self, input_str: str) -> int:
+    def _parse_byte_units(self, input_str: str) -> tuple[int, str] | tuple[None, None]:
         """Parse byte size string with units like '1GB', '2.5GiB', etc."""
         # Unit multipliers
         decimal_multipliers = {
@@ -84,6 +94,8 @@ class ByteSizeConverter(Converter):
             "mb": 1000**2,
             "gb": 1000**3,
             "tb": 1000**4,
+            "pb": 1000**5,
+            "eb": 1000**6,
         }
 
         binary_multipliers = {
@@ -92,14 +104,16 @@ class ByteSizeConverter(Converter):
             "mib": 1024**2,
             "gib": 1024**3,
             "tib": 1024**4,
+            "pib": 1024**5,
+            "eib": 1024**6,
         }
 
         # Extract number and unit
-        pattern = r"^(\d+(?:\.\d+)?)\s*([kmgt]?i?b)$"
+        pattern = r"^(\d+(?:\.\d+)?)\s*([kmgtpe]?i?b)$"
         match = re.match(pattern, input_str)
 
         if not match:
-            return None
+            return None, None
 
         value_str, unit = match.groups()
 
@@ -112,10 +126,14 @@ class ByteSizeConverter(Converter):
             else:
                 multiplier = decimal_multipliers.get(unit, 1)
 
-            return int(value * multiplier)
+            return int(value * multiplier), unit
 
         except ValueError:
-            return None
+            return None, None
+
+    def _format_unit_display(self, unit: str) -> str:
+        """Format unit for display: uppercase letters but keep 'i' lowercase for binary units."""
+        return unit.upper().replace("I", "i")
 
     def get_name(self) -> str:
         """Get the name of this converter."""

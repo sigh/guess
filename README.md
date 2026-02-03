@@ -22,7 +22,7 @@ NOTE: Mostly coded using Claude Sonnet 4. See [REQUIREMENTS.md](REQUIREMENTS.md)
 ```bash
 git clone https://github.com/sigh/guess
 cd guess
-pip install .
+pip install . --extra-index-url https://pypi.org/simple
 ```
 
 Requires Python 3.8+
